@@ -1,0 +1,15 @@
+# Assignment brief (kept local)
+Everfit_Test for Backend Engineer.pdf
+
+# Claude Code local artifacts
+.claude/hooks/ai-journal.log
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+
+# Node
+node_modules/
+dist/
+coverage/
+.env
