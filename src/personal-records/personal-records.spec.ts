@@ -1,5 +1,14 @@
+import { Decimal } from 'decimal.js';
 import type { WeightUnit } from '../domain/weight-units.js';
-import { type PrMetric, type RecordRow, hasAnyRecord, presentRecords, toPersonalRecords } from './personal-records.js';
+import {
+  type PersonalRecords,
+  type PrMetric,
+  type RecordRow,
+  compareRecords,
+  hasAnyRecord,
+  presentRecords,
+  toPersonalRecords,
+} from './personal-records.js';
 
 const row = (metric: PrMetric, reps: number, weight: string, unit: WeightUnit = 'kg'): RecordRow => ({
   metric,
@@ -38,5 +47,41 @@ describe('toPersonalRecords', () => {
     const records = toPersonalRecords([], 'kg');
     expect(records).toEqual({ maxWeight: null, maxVolume: null, bestE1rm: null });
     expect(hasAnyRecord(records)).toBe(false);
+  });
+});
+
+describe('compareRecords', () => {
+  const record = (value: number) => ({
+    value: new Decimal(value),
+    weight: new Decimal(value),
+    reps: 1,
+    date: '2026-10-01',
+    entryId: 'e',
+    inLoggedUnit: true,
+  });
+  const records = (maxWeight: number | null, maxVolume: number | null = null, bestE1rm: number | null = null): PersonalRecords => ({
+    maxWeight: maxWeight === null ? null : record(maxWeight),
+    maxVolume: maxVolume === null ? null : record(maxVolume),
+    bestE1rm: bestE1rm === null ? null : record(bestE1rm),
+  });
+
+  it('reports absolute and percent change per metric', () => {
+    expect(compareRecords(records(105, 1000, 120), records(100, 800, 125))).toEqual({
+      maxWeight: { absolute: 5, percent: 5 },
+      maxVolume: { absolute: 200, percent: 25 },
+      bestE1rm: { absolute: -5, percent: -4 },
+    });
+  });
+
+  it('rounds the percent change to two decimals', () => {
+    expect(compareRecords(records(110), records(105)).maxWeight).toEqual({ absolute: 5, percent: 4.76 });
+  });
+
+  it('is null for a metric missing in either period', () => {
+    expect(compareRecords(records(105), records(null))).toEqual({ maxWeight: null, maxVolume: null, bestE1rm: null });
+  });
+
+  it('has no percent change from a zero baseline (bodyweight sets)', () => {
+    expect(compareRecords(records(10), records(0)).maxWeight).toEqual({ absolute: 10, percent: null });
   });
 });

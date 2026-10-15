@@ -102,3 +102,45 @@ function metricValue(metric: PrMetric, reps: number, weight: Decimal): Decimal {
       return epleyOneRepMax(reps, weight);
   }
 }
+
+export interface MetricChange {
+  /** current − baseline, in the requested unit. */
+  absolute: number;
+  /** Change relative to the baseline in percent; null when the baseline is zero. */
+  percent: number | null;
+}
+
+export type RecordChanges = Record<PrMetric, MetricChange | null>;
+
+export interface PeriodRecords {
+  from: string;
+  to: string;
+  records: RecordsResponse;
+}
+
+export interface RecordsComparisonResponse {
+  data: {
+    exerciseName: string;
+    unit: WeightUnit;
+    current: PeriodRecords;
+    baseline: PeriodRecords;
+    change: RecordChanges;
+  };
+  /** Present only when neither period has data. */
+  message?: string;
+}
+
+/** Per-metric change from the baseline period to the current one; null when either period lacks a record. */
+export function compareRecords(current: PersonalRecords, baseline: PersonalRecords): RecordChanges {
+  const change = (metric: PrMetric): MetricChange | null => {
+    const now = current[metric];
+    const before = baseline[metric];
+    if (now === null || before === null) return null;
+    const difference = now.value.minus(before.value);
+    return {
+      absolute: roundForDisplay(difference),
+      percent: before.value.isZero() ? null : roundForDisplay(difference.div(before.value).times(100)),
+    };
+  };
+  return { maxWeight: change('maxWeight'), maxVolume: change('maxVolume'), bestE1rm: change('bestE1rm') };
+}
