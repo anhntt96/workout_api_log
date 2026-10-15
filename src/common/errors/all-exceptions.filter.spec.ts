@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Post } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
@@ -26,6 +26,16 @@ class ProbeController {
   @Post('echo')
   echo(@Body() body: unknown): unknown {
     return body;
+  }
+
+  @Get('items/:id')
+  item(@Param('id') id: string): string {
+    return id;
+  }
+
+  @Get('raw-client-error')
+  rawClientError(): never {
+    throw Object.assign(new Error('internal detail'), { status: 422 });
   }
 }
 
@@ -90,5 +100,17 @@ describe('AllExceptionsFilter', () => {
       .send({ padding: 'x'.repeat(2048) });
     expect(res.status).toBe(413);
     expect(res.body).toMatchObject({ statusCode: 413, code: 'PAYLOAD_TOO_LARGE' });
+  });
+
+  it('turns a malformed percent-encoded path segment into a 400', async () => {
+    const res = await request(app.getHttpServer()).get('/probe/items/%E0%A4%A');
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ statusCode: 400, code: 'BAD_REQUEST' });
+  });
+
+  it('renders a raw 4xx error without expose as that client error, hiding its message', async () => {
+    const res = await request(app.getHttpServer()).get('/probe/raw-client-error');
+    expect(res.status).toBe(422);
+    expect(res.body).toEqual({ statusCode: 422, code: 'HTTP_ERROR', message: 'Unprocessable Entity' });
   });
 });

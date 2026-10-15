@@ -1,5 +1,6 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { STATUS_CODES } from 'node:http';
 import { type FieldError, RequestValidationError } from './request-validation.error.js';
 
 /** Body of every error response. */
@@ -47,9 +48,11 @@ function toErrorBody(exception: unknown): Omit<ErrorResponseBody, 'requestId'> {
   if (exception instanceof HttpException) {
     return httpError(exception.getStatus(), exception.message);
   }
-  if (isExposedClientError(exception)) {
-    // Raised by Express middleware such as body-parser, e.g. 413 for an oversized body.
-    return httpError(exception.status, exception.message);
+  if (isClientHttpError(exception)) {
+    // Raised by Express middleware and the router, e.g. 413 for an oversized body or 400 for a malformed
+    // percent-encoded URL. The message is shown only when the error marks it safe to expose.
+    const message = exception.expose === true ? exception.message : (STATUS_CODES[exception.status] ?? 'Bad Request');
+    return httpError(exception.status, message);
   }
   return { statusCode: 500, code: 'INTERNAL_ERROR', message: 'Internal server error' };
 }
@@ -59,9 +62,9 @@ function httpError(statusCode: number, message: string): Omit<ErrorResponseBody,
   return { statusCode, code: CODE_BY_STATUS[statusCode] ?? fallback, message };
 }
 
-/** An `http-errors` 4xx that is safe to show the client (`expose: true`). */
-function isExposedClientError(value: unknown): value is { status: number; message: string } {
+/** Any 4xx error carrying a numeric `status`, such as an `http-errors` error from Express. */
+function isClientHttpError(value: unknown): value is { status: number; message: string; expose?: unknown } {
   if (typeof value !== 'object' || value === null) return false;
-  const { status, expose } = value as { status?: unknown; expose?: unknown };
-  return typeof status === 'number' && status >= 400 && status < 500 && expose === true;
+  const { status } = value as { status?: unknown };
+  return typeof status === 'number' && status >= 400 && status < 500;
 }
