@@ -11,7 +11,7 @@
 **Why:** Both PostgreSQL and MongoDB can meet the performance requirements. The difference is where complexity lives. PostgreSQL keeps aggregation, filtering and the configurable muscle-group mapping simple, and puts the extra work on the write path. The assignment evaluates aggregation efficiency and configurable mapping explicitly, so that trade-off fits best.
 
 **Schema at a glance:**
-- `workout_entries`: one row per exercise per day for a user. It holds per-entry PR summaries computed when the entry is written: `best_weight_kg`, `best_volume_kg`, `best_e1rm_kg`.
+- `workout_entries`: one row per logged exercise session for a user; several entries per exercise per day are allowed ([ADR 0003](0003-concurrent-writes-and-idempotency.md)). It holds per-entry PR summaries computed when the entry is written: `best_weight_kg`, `best_volume_kg`, `best_e1rm_kg`.
 - `workout_sets`: child rows of an entry. Each keeps the original `weight` and `unit` plus the normalized `weight_kg`.
 - `exercises`, `muscle_groups`, `exercise_muscle_groups`: the configurable exercise → muscle group mapping, stored as data.
 
@@ -76,7 +76,7 @@ Key indexes:
 **Integrity and concurrency:**
 - `CHECK` constraints and foreign keys enforce data rules in the database.
 - Each bulk request is written in one transaction.
-- Retries are idempotent via `UNIQUE (user_id, idempotency_key)` with `ON CONFLICT`.
+- Retries are idempotent via `UNIQUE (user_id, idempotency_key)` with `ON CONFLICT`. See [ADR 0003](0003-concurrent-writes-and-idempotency.md).
 
 **Key trade-offs accepted:**
 - Entries are immutable after creation, so the summaries never go stale.
@@ -99,7 +99,7 @@ The requirements that shape the storage layer:
 | History filtered by partial exercise name, date range, muscle group; paginated | Indexed range scans per user; partial-text match; a join or lookup to exercise metadata |
 | PRs per user and exercise: max weight, max set volume, best Epley 1RM, each with its date | Per-set metrics must be queryable without scanning all of a user's data |
 | Compare PRs across time ranges (this month vs last month) | Conditional aggregation over date ranges |
-| Concurrent writes (same user, same exercise, same time) | Idempotency and atomic multi-row writes |
+| Concurrent writes (same user, same exercise, same time) | Idempotency and atomic multi-row writes; see [ADR 0003](0003-concurrent-writes-and-idempotency.md) |
 | 50,000+ entries per user must perform well | Every read path must be index-backed; no full per-user scans |
 | Exercise → muscle group mapping must be configurable | The mapping is data, not code; changes should take effect without rewriting history |
 | Adding a unit (e.g. stone) needs minimal code change | Unit should not be hard-baked into the schema as a closed type that requires migrations |
