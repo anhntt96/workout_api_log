@@ -24,6 +24,14 @@ describe('toPersonalRecords', () => {
     const rows = [row('maxWeight', 1, '315.000', 'lb')];
     expect(presentRecords(toPersonalRecords(rows, 'lb')).maxWeight?.value).toBe(315);
     expect(presentRecords(toPersonalRecords(rows, 'kg')).maxWeight?.value).toBe(142.88);
+    expect(presentRecords(toPersonalRecords([row('maxWeight', 1, '100.125')], 'kg')).maxWeight).toMatchObject({
+      value: 100.125,
+      weight: 100.125,
+    });
+    expect(presentRecords(toPersonalRecords([row('maxWeight', 1, '100.125')], 'lb')).maxWeight).toMatchObject({
+      value: 220.74,
+      weight: 220.74,
+    });
   });
 
   it('leaves metrics without data as null', () => {

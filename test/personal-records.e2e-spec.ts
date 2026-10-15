@@ -65,6 +65,12 @@ describe('GET /users/:userId/personal-records', () => {
     expect(lb.body.data).toMatchObject({ unit: 'lb', records: { maxWeight: { value: 220.46, weight: 220.46 } } });
   });
 
+  it('keeps a weight exact in the unit it was logged in', async () => {
+    await log([entry('2026-09-01', 'Bench Press', [set(1, 100.125)])]);
+    const res = await getRecords({ exerciseName: 'Bench Press' });
+    expect(res.body.data.records.maxWeight).toMatchObject({ value: 100.125, weight: 100.125 });
+  });
+
   it('limits records to an inclusive date range', async () => {
     await log([entry('2026-08-31', 'Bench Press', [set(1, 130)])]);
     await log([entry('2026-09-01', 'Bench Press', [set(1, 110)])]);

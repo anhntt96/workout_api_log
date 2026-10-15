@@ -23,6 +23,8 @@ export interface PersonalRecord {
   /** The day the record was first reached. */
   date: string;
   entryId: string;
+  /** True when the record set was logged in the requested unit, so its weight is shown exactly. */
+  inLoggedUnit: boolean;
 }
 
 export type PersonalRecords = Record<PrMetric, PersonalRecord | null>;
@@ -60,6 +62,7 @@ export function toPersonalRecords(rows: readonly RecordRow[], unit: WeightUnit):
       reps: row.reps,
       date: row.performedOn,
       entryId: row.entryId,
+      inLoggedUnit: row.unit === unit,
     };
   }
   return records;
@@ -70,18 +73,22 @@ export function hasAnyRecord(records: PersonalRecords): boolean {
 }
 
 export function presentRecords(records: PersonalRecords): RecordsResponse {
-  const present = (record: PersonalRecord | null): RecordResponse | null =>
-    record && {
-      value: roundForDisplay(record.value),
-      weight: roundForDisplay(record.weight),
+  const present = (metric: PrMetric, record: PersonalRecord | null): RecordResponse | null => {
+    if (record === null) return null;
+    // A weight shown in the unit it was logged in keeps its exact logged value (global rule).
+    const weight = record.inLoggedUnit ? record.weight.toNumber() : roundForDisplay(record.weight);
+    return {
+      value: metric === 'maxWeight' ? weight : roundForDisplay(record.value),
+      weight,
       reps: record.reps,
       date: record.date,
       entryId: record.entryId,
     };
+  };
   return {
-    maxWeight: present(records.maxWeight),
-    maxVolume: present(records.maxVolume),
-    bestE1rm: present(records.bestE1rm),
+    maxWeight: present('maxWeight', records.maxWeight),
+    maxVolume: present('maxVolume', records.maxVolume),
+    bestE1rm: present('bestE1rm', records.bestE1rm),
   };
 }
 
