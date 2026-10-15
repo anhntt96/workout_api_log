@@ -31,6 +31,8 @@ describe('shared schemas', () => {
     expect(plainDateSchema('from').parse('2026-10-01')).toBe('2026-10-01');
     expect(messages(plainDateSchema('from'), '2026-02-30')).toEqual(['from must be a date in YYYY-MM-DD format']);
     expect(messages(plainDateSchema('from'), undefined)).toEqual(['from is required']);
+    expect(messages(plainDateSchema('from'), '0000-01-01')).toEqual(['from must be on or after 0001-01-01']);
+    expect(messages(plainDateSchema('from'), '')).toEqual(['from must be a date in YYYY-MM-DD format']);
   });
 
   it('trims exercise names and rejects blank ones', () => {

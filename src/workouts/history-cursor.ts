@@ -7,7 +7,8 @@ export interface HistoryCursor {
   id: string;
 }
 
-const cursorTuple = z.tuple([z.iso.date(), z.iso.datetime(), z.guid()]);
+const notBeforeYearOne = (value: string): boolean => value >= '0001-01-01';
+const cursorTuple = z.tuple([z.iso.date().refine(notBeforeYearOne), z.iso.datetime().refine(notBeforeYearOne), z.guid()]);
 
 /** Opaque, URL-safe cursor: base64url of a JSON tuple. */
 export function encodeCursor(cursor: HistoryCursor): string {

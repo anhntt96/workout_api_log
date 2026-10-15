@@ -196,6 +196,7 @@ describe('GET /users/:userId/workout-entries', () => {
       field: 'muscleGroup',
       message: 'muscleGroup must not contain control characters',
     },
+    { name: 'a year-zero date', query: { from: '0000-01-01' }, field: 'from', message: 'from must be on or after 0001-01-01' },
   ];
 
   it.each(invalidQueries)('rejects $name', async ({ query, field, message }) => {

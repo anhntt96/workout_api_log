@@ -20,6 +20,7 @@ describe('history cursor', () => {
     'not-base64!',
     Buffer.from('{"a":1}').toString('base64url'),
     Buffer.from('["2026-10-14","yesterday","x"]').toString('base64url'),
+    Buffer.from('["0000-01-01","0000-01-01T00:00:00Z","86576499-296e-4c44-bb4e-57e950b9eb57"]').toString('base64url'),
   ])('rejects %j', (raw) => {
     expect(decodeCursor(raw)).toBeNull();
   });
