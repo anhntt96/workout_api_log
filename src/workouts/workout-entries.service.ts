@@ -12,10 +12,17 @@ import {
   exerciseKey,
   unknownExercise,
 } from '../exercises/exercises.repository.js';
+import { encodeCursor } from './history-cursor.js';
 import { entryIdempotencyKey } from './idempotency-key.js';
 import { type InsertResult, WorkoutEntriesRepository } from './workout-entries.repository.js';
-import type { LogEntriesBody, LogEntryInput } from './workout-entries.schemas.js';
-import type { NewEntry } from './workout-entry.js';
+import type { HistoryQuery, LogEntriesBody, LogEntryInput } from './workout-entries.schemas.js';
+import type { NewEntry, WorkoutEntry } from './workout-entry.js';
+
+export interface HistoryPage {
+  entries: WorkoutEntry[];
+  /** Cursor for the next page, or null on the last page. */
+  nextCursor: string | null;
+}
 
 @Injectable()
 export class WorkoutEntriesService {
@@ -52,6 +59,43 @@ export class WorkoutEntriesService {
     });
     if (errors.length > 0) throw new RequestValidationError(errors);
     return this.entries.insertEntries(userId, newEntries);
+  }
+
+  /** One page of a user's history, newest first, with optional exercise, muscle group and date filters. */
+  async history(userId: string, query: HistoryQuery): Promise<HistoryPage> {
+    if (query.muscleGroup !== undefined) {
+      await this.assertKnownMuscleGroup(query.muscleGroup);
+    }
+    let exerciseIds: string[] | undefined;
+    if (query.exerciseName !== undefined || query.muscleGroup !== undefined) {
+      // Resolve the filters on the small exercises table first, then scan only the user's entries.
+      exerciseIds = await this.exercises.findIds({ nameContains: query.exerciseName, muscleGroup: query.muscleGroup });
+      if (exerciseIds.length === 0) return { entries: [], nextCursor: null };
+    }
+    const rows = await this.entries.findHistoryPage({
+      userId,
+      exerciseIds,
+      from: query.from,
+      to: query.to,
+      after: query.cursor,
+      limit: query.limit + 1, // one extra row tells us whether another page exists
+    });
+    const entries = rows.slice(0, query.limit);
+    const last = entries.at(-1);
+    const nextCursor =
+      rows.length > query.limit && last !== undefined
+        ? encodeCursor({ performedOn: last.performedOn, createdAt: last.createdAt, id: last.id })
+        : null;
+    return { entries, nextCursor };
+  }
+
+  private async assertKnownMuscleGroup(name: string): Promise<void> {
+    const groups = await this.exercises.listMuscleGroups();
+    if (!groups.some((group) => group.toLowerCase() === name.toLowerCase())) {
+      throw new RequestValidationError([
+        { field: 'muscleGroup', message: `Unknown muscle group "${name}". Valid muscle groups: ${groups.join(', ')}` },
+      ]);
+    }
   }
 }
 

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Pool, PoolClient } from 'pg';
 import { PG_POOL } from '../database/database.module.js';
 import { withTransaction } from '../database/transaction.js';
+import type { HistoryCursor } from './history-cursor.js';
 import type { NewEntry, StoredSet, WorkoutEntry } from './workout-entry.js';
 
 type Queryable = Pool | PoolClient;
@@ -54,6 +55,48 @@ function toWorkoutEntry(row: EntryRow): WorkoutEntry {
     createdAt: row.created_at,
     sets: row.sets,
   };
+}
+
+export interface HistoryFilter {
+  userId: string;
+  /** Only these exercises; undefined means every exercise. */
+  exerciseIds?: readonly string[];
+  /** Inclusive bounds on performed_on. */
+  from?: string;
+  to?: string;
+  /** Return entries strictly after this position in history order. */
+  after?: HistoryCursor;
+  limit: number;
+}
+
+/**
+ * History page, newest first (performed_on DESC, created_at DESC, id DESC; ADR 0002), with
+ * keyset pagination. Postgres evaluates the cursor's row comparison inside
+ * `workout_entries_history_idx`, so a deep page costs the same as the first one.
+ */
+export function buildHistoryQuery(filter: HistoryFilter): { text: string; values: unknown[] } {
+  const values: unknown[] = [filter.userId];
+  const param = (value: unknown, type: string): string => {
+    values.push(value);
+    return `$${values.length}::${type}`;
+  };
+  const conditions = ['e.user_id = $1::uuid'];
+  if (filter.exerciseIds !== undefined) conditions.push(`e.exercise_id = ANY(${param(filter.exerciseIds, 'uuid[]')})`);
+  if (filter.from !== undefined) conditions.push(`e.performed_on >= ${param(filter.from, 'date')}`);
+  if (filter.to !== undefined) conditions.push(`e.performed_on <= ${param(filter.to, 'date')}`);
+  if (filter.after !== undefined) {
+    const { performedOn, createdAt, id } = filter.after;
+    conditions.push(
+      `(e.performed_on, e.created_at, e.id) < (${param(performedOn, 'date')}, ${param(createdAt, 'timestamptz')}, ${param(id, 'uuid')})`,
+    );
+  }
+  const page = `
+    SELECT e.id, e.user_id, e.exercise_id, e.performed_on, e.created_at
+    FROM workout_entries e
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY e.performed_on DESC, e.created_at DESC, e.id DESC
+    LIMIT ${param(filter.limit, 'int')}`;
+  return { text: selectEntries(page, 'p.performed_on DESC, p.created_at DESC, p.id DESC'), values };
 }
 
 @Injectable()
@@ -113,6 +156,12 @@ export class WorkoutEntriesRepository {
       ),
       [userId, keys],
     );
+    return rows.map(toWorkoutEntry);
+  }
+
+  async findHistoryPage(filter: HistoryFilter): Promise<WorkoutEntry[]> {
+    const { text, values } = buildHistoryQuery(filter);
+    const { rows } = await this.pool.query<EntryRow>(text, values);
     return rows.map(toWorkoutEntry);
   }
 }

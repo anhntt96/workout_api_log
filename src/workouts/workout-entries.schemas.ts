@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { exerciseNameSchema, requiredError, weightUnitSchema } from '../common/validation/schemas.js';
+import { exerciseNameSchema, plainDateSchema, requiredError, weightUnitSchema } from '../common/validation/schemas.js';
 import { parseWorkoutDate } from '../domain/workout-date.js';
+import { decodeCursor } from './history-cursor.js';
 
 export const MAX_ENTRIES_PER_REQUEST = 50;
 export const MAX_SETS_PER_ENTRY = 50;
@@ -53,3 +54,40 @@ export const logEntriesBodySchema = z.strictObject(
 
 export type LogEntriesBody = z.output<typeof logEntriesBodySchema>;
 export type LogEntryInput = LogEntriesBody['entries'][number];
+
+export const HISTORY_DEFAULT_LIMIT = 20;
+export const HISTORY_MAX_LIMIT = 100;
+
+export const historyQuerySchema = z
+  .strictObject({
+    exerciseName: exerciseNameSchema().optional(),
+    muscleGroup: z
+      .string(requiredError('muscleGroup', 'a string'))
+      .trim()
+      .min(1, 'muscleGroup must not be empty')
+      .optional(),
+    from: plainDateSchema('from').optional(),
+    to: plainDateSchema('to').optional(),
+    unit: weightUnitSchema.optional(),
+    limit: z.coerce
+      .number({ error: 'limit must be a number' })
+      .int('limit must be a whole number')
+      .min(1, 'limit must be at least 1')
+      .max(HISTORY_MAX_LIMIT, `limit must be at most ${HISTORY_MAX_LIMIT}`)
+      .default(HISTORY_DEFAULT_LIMIT),
+    cursor: z
+      .string(requiredError('cursor', 'a string'))
+      .transform((value, ctx) => {
+        const cursor = decodeCursor(value);
+        if (cursor) return cursor;
+        ctx.addIssue({ code: 'custom', message: 'cursor is invalid; use nextCursor from the previous page' });
+        return z.NEVER;
+      })
+      .optional(),
+  })
+  .refine((query) => !query.from || !query.to || query.from <= query.to, {
+    message: 'from must be on or before to',
+    path: ['from'],
+  });
+
+export type HistoryQuery = z.output<typeof historyQuerySchema>;

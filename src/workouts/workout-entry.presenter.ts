@@ -38,3 +38,10 @@ function presentSet(set: StoredSet, unit: WeightUnit | undefined): SetResponse {
   }
   return { reps: set.reps, weight: roundForDisplay(convertWeight(set.weight, set.unit, unit)), unit };
 }
+
+export interface HistoryResponse {
+  data: EntryResponse[];
+  page: { limit: number; nextCursor: string | null };
+  /** Present only when the page is empty. */
+  message?: string;
+}
