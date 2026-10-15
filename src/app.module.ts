@@ -6,6 +6,7 @@ import { assignRequestId } from './common/logging/request-id.js';
 import { APP_CONFIG, type AppConfig } from './config/app-config.js';
 import { CoreModule } from './core.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { ExercisesModule } from './exercises/exercises.module.js';
 import { HealthController } from './health/health.controller.js';
 
 @Module({
@@ -18,6 +19,7 @@ import { HealthController } from './health/health.controller.js';
       }),
     }),
     DatabaseModule,
+    ExercisesModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
