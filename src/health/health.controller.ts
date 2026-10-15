@@ -11,8 +11,8 @@ export class HealthController {
   async check(): Promise<{ status: 'ok' }> {
     try {
       await this.pool.query('SELECT 1');
-    } catch {
-      throw new ServiceUnavailableException('Database is unreachable');
+    } catch (error) {
+      throw new ServiceUnavailableException('Database is unreachable', { cause: error });
     }
     return { status: 'ok' };
   }
