@@ -8,6 +8,7 @@ import { CoreModule } from './core.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
 import { HealthController } from './health/health.controller.js';
+import { PersonalRecordsModule } from './personal-records/personal-records.module.js';
 import { WorkoutsModule } from './workouts/workouts.module.js';
 
 @Module({
@@ -22,6 +23,7 @@ import { WorkoutsModule } from './workouts/workouts.module.js';
     DatabaseModule,
     ExercisesModule,
     WorkoutsModule,
+    PersonalRecordsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
