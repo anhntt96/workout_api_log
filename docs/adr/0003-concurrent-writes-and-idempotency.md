@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-15
 - **Deciders:** Project owner (with AI-assisted analysis)
+- **Note:** The "Exercises" find-or-create rules below are superseded by [ADR 0004](0004-predefined-exercise-catalog.md). Exercises are now a fixed catalog, so there is no concurrent creation.
 
 ## Summary
 
