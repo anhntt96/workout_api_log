@@ -108,6 +108,8 @@ export class WorkoutEntriesRepository {
    * An entry whose idempotency key the user already has is skipped (ADR 0003), and the stored
    * entry is returned instead. A parallel retry waits on the unique index until the first
    * request commits, then takes the same path. If the first request rolls back, the retry inserts.
+   * This relies on READ COMMITTED (the Postgres default used by withTransaction): under REPEATABLE READ
+   * or SERIALIZABLE, a parallel retry would fail with a serialization error instead of replaying.
    */
   async insertEntries(userId: string, entries: readonly NewEntry[]): Promise<InsertResult> {
     return withTransaction(this.pool, async (client) => {

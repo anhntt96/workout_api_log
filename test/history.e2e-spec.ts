@@ -190,6 +190,12 @@ describe('GET /users/:userId/workout-entries', () => {
       message: 'cursor is invalid; use nextCursor from the previous page',
     },
     { name: 'a misspelled parameter', query: { exercise: 'bench' }, field: 'query', message: 'Unrecognized key: "exercise"' },
+    {
+      name: 'a control character in the muscle group',
+      query: { muscleGroup: 'back\u0000' },
+      field: 'muscleGroup',
+      message: 'muscleGroup must not contain control characters',
+    },
   ];
 
   it.each(invalidQueries)('rejects $name', async ({ query, field, message }) => {

@@ -31,7 +31,9 @@ export async function createTestApp(): Promise<TestApp> {
     .compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>();
   configureApp(app);
-  await app.init();
+  // Listen once on an ephemeral port; supertest then reuses the address instead of
+  // calling listen() on the shared server for every parallel request.
+  await app.listen(0, '127.0.0.1');
   return { app, pool: app.get<Pool>(PG_POOL) };
 }
 

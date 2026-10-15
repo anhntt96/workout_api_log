@@ -53,6 +53,7 @@ describe('idempotent and concurrent logging', () => {
     );
     expect(responses.map((res) => res.status)).toEqual(Array(8).fill(201));
     expect(new Set(responses.map((res) => entriesOf(res)[0].id)).size).toBe(1);
+    expect(responses.filter((res) => res.headers['idempotent-replayed'] === 'true')).toHaveLength(7);
     expect(await countEntries(t.pool)).toBe(1);
   });
 

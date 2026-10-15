@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { exerciseNameSchema, plainDateSchema, requiredError, weightUnitSchema } from '../common/validation/schemas.js';
+import {
+  exerciseNameSchema,
+  hasControlCharacter,
+  plainDateSchema,
+  requiredError,
+  weightUnitSchema,
+} from '../common/validation/schemas.js';
 import { parseWorkoutDate } from '../domain/workout-date.js';
 import { decodeCursor } from './history-cursor.js';
 
@@ -65,6 +71,7 @@ export const historyQuerySchema = z
       .string(requiredError('muscleGroup', 'a string'))
       .trim()
       .min(1, 'muscleGroup must not be empty')
+      .refine((value) => !hasControlCharacter(value), 'muscleGroup must not contain control characters')
       .optional(),
     from: plainDateSchema('from').optional(),
     to: plainDateSchema('to').optional(),
