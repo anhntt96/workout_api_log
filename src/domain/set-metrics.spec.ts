@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 import { epleyOneRepMax, setVolume, summarizeSets } from './set-metrics.js';
+import { roundForStorage } from './weight-units.js';
 
 const kg = (value: string | number) => new Decimal(value);
 
@@ -17,6 +18,11 @@ describe('epleyOneRepMax', () => {
 
   it('follows the brief for a single rep (3.3% above the lifted weight)', () => {
     expect(epleyOneRepMax(1, 120).toFixed(3)).toBe('124.000');
+  });
+
+  it('rounds exact half-up ties correctly (20.025 × 31/30 = 20.6925 exactly)', () => {
+    // Dividing reps by 30 first would truncate 1/30 and land just below the tie.
+    expect(roundForStorage(epleyOneRepMax(1, '20.025')).toString()).toBe('20.693');
   });
 
   it('is zero for bodyweight sets logged with zero weight', () => {

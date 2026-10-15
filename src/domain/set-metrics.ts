@@ -22,9 +22,11 @@ export function setVolume(reps: number, weight: Decimal.Value): Decimal {
 /**
  * Estimated one-rep max with the Epley formula exactly as the brief defines it:
  * weight × (1 + reps / 30). A single rep therefore gives weight × 1.0333.
+ * It is evaluated as weight × (reps + 30) / 30, so the only division is the last one and
+ * exact half-up ties are not truncated by an inexact reps / 30.
  */
 export function epleyOneRepMax(reps: number, weight: Decimal.Value): Decimal {
-  return new Decimal(weight).times(new Decimal(reps).div(30).plus(1));
+  return new Decimal(weight).times(new Decimal(reps).plus(30)).div(30);
 }
 
 /** The best value of each metric across an entry's sets; the metrics may come from different sets. */
