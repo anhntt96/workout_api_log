@@ -1,0 +1,121 @@
+import { Inject, Injectable } from '@nestjs/common';
+import type { Pool, PoolClient } from 'pg';
+import { PG_POOL } from '../database/database.module.js';
+import { withTransaction } from '../database/transaction.js';
+import type { NewEntry, StoredSet, WorkoutEntry } from './workout-entry.js';
+
+type Queryable = Pool | PoolClient;
+
+interface EntryRow {
+  id: string;
+  user_id: string;
+  exercise_name: string;
+  performed_on: string;
+  created_at: string;
+  sets: StoredSet[];
+}
+
+/**
+ * Completes an inner query that selects `workout_entries` rows (id, user_id, exercise_id,
+ * performed_on, created_at, plus any column `orderBy` needs) with the exercise name and the
+ * sets. The inner query filters and limits first, so sets load only for the returned entries.
+ * `created_at` keeps its microseconds so it can be used in a pagination cursor.
+ */
+export function selectEntries(innerSql: string, orderBy: string): string {
+  return `
+    SELECT p.id, p.user_id, x.name::text AS exercise_name, p.performed_on,
+           to_char(p.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
+           s.sets
+    FROM (${innerSql}) p
+    JOIN exercises x ON x.id = p.exercise_id
+    CROSS JOIN LATERAL (
+      SELECT coalesce(json_agg(json_build_object(
+               'reps', ws.reps, 'weight', ws.weight::text, 'unit', ws.unit, 'weightKg', ws.weight_kg::text)
+             ORDER BY ws.set_index), '[]') AS sets
+      FROM workout_sets ws
+      WHERE ws.entry_id = p.id
+    ) s
+    ORDER BY ${orderBy}`;
+}
+
+function toWorkoutEntry(row: EntryRow): WorkoutEntry {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    exerciseName: row.exercise_name,
+    performedOn: row.performed_on,
+    createdAt: row.created_at,
+    sets: row.sets,
+  };
+}
+
+@Injectable()
+export class WorkoutEntriesRepository {
+  constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+
+  /** Inserts entries and their sets in one transaction, so a bulk request is all-or-nothing. */
+  async insertEntries(userId: string, entries: readonly NewEntry[]): Promise<WorkoutEntry[]> {
+    return withTransaction(this.pool, async (client) => {
+      await insertEntryRows(client, userId, entries);
+      await insertSetRows(client, entries);
+      return this.findByIds(
+        entries.map((entry) => entry.id),
+        client,
+      );
+    });
+  }
+
+  /** Entries by id, in the order of `ids`. */
+  async findByIds(ids: readonly string[], db: Queryable = this.pool): Promise<WorkoutEntry[]> {
+    const { rows } = await db.query<EntryRow>(
+      selectEntries(
+        `SELECT e.id, e.user_id, e.exercise_id, e.performed_on, e.created_at
+         FROM workout_entries e
+         WHERE e.id = ANY($1::uuid[])`,
+        'array_position($1::uuid[], p.id)',
+      ),
+      [ids],
+    );
+    return rows.map(toWorkoutEntry);
+  }
+}
+
+/** One multi-row INSERT for all entries of the request. */
+async function insertEntryRows(client: PoolClient, userId: string, entries: readonly NewEntry[]): Promise<void> {
+  await client.query(
+    `INSERT INTO workout_entries
+       (id, user_id, exercise_id, performed_on, best_weight_kg, best_volume_kg, best_e1rm_kg)
+     SELECT t.id, $1::uuid, t.exercise_id, t.performed_on, t.best_weight_kg, t.best_volume_kg, t.best_e1rm_kg
+     FROM unnest($2::uuid[], $3::uuid[], $4::date[], $5::numeric[], $6::numeric[], $7::numeric[])
+       AS t (id, exercise_id, performed_on, best_weight_kg, best_volume_kg, best_e1rm_kg)`,
+    [
+      userId,
+      entries.map((entry) => entry.id),
+      entries.map((entry) => entry.exerciseId),
+      entries.map((entry) => entry.performedOn),
+      entries.map((entry) => entry.summary.bestWeightKg.toFixed()),
+      entries.map((entry) => entry.summary.bestVolumeKg.toFixed()),
+      entries.map((entry) => entry.summary.bestE1rmKg.toFixed()),
+    ],
+  );
+}
+
+/** One multi-row INSERT for every set of the given entries. */
+async function insertSetRows(client: PoolClient, entries: readonly NewEntry[]): Promise<void> {
+  const rows = entries.flatMap((entry) =>
+    entry.sets.map((set, setIndex) => ({ entryId: entry.id, setIndex, ...set })),
+  );
+  if (rows.length === 0) return;
+  await client.query(
+    `INSERT INTO workout_sets (entry_id, set_index, reps, weight, unit, weight_kg)
+     SELECT * FROM unnest($1::uuid[], $2::smallint[], $3::int[], $4::numeric[], $5::text[], $6::numeric[])`,
+    [
+      rows.map((row) => row.entryId),
+      rows.map((row) => row.setIndex),
+      rows.map((row) => row.reps),
+      rows.map((row) => row.weight.toFixed()),
+      rows.map((row) => row.unit),
+      rows.map((row) => row.weightKg.toFixed()),
+    ],
+  );
+}
