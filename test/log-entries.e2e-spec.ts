@@ -157,6 +157,12 @@ describe('POST /users/:userId/workout-entries', () => {
       field: 'entries[0].exerciseName',
       message: 'exerciseName is required',
     },
+    {
+      name: 'a control character in the exercise name',
+      override: { exerciseName: 'Bench\u0000Press' },
+      field: 'entries[0].exerciseName',
+      message: 'exerciseName must not contain control characters',
+    },
     { name: 'an unexpected field', override: { userId: USER_B }, field: 'entries[0]', message: 'Unrecognized key: "userId"' },
   ];
 

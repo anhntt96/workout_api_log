@@ -1,5 +1,11 @@
 import type { z } from 'zod';
-import { exerciseNameSchema, plainDateSchema, userIdParamSchema, weightUnitSchema } from './schemas.js';
+import {
+  exerciseNameSchema,
+  hasControlCharacter,
+  plainDateSchema,
+  userIdParamSchema,
+  weightUnitSchema,
+} from './schemas.js';
 
 function messages(schema: z.ZodType, input: unknown): string[] {
   const result = schema.safeParse(input);
@@ -31,5 +37,12 @@ describe('shared schemas', () => {
     expect(exerciseNameSchema().parse('  Bench Press ')).toBe('Bench Press');
     expect(messages(exerciseNameSchema(), '   ')).toEqual(['exerciseName must not be empty']);
     expect(messages(exerciseNameSchema(), undefined)).toEqual(['exerciseName is required']);
+  });
+
+  it('rejects control characters in exercise names (Postgres text cannot store NUL)', () => {
+    expect(messages(exerciseNameSchema(), 'Bench\u0000Press')).toEqual(['exerciseName must not contain control characters']);
+    expect(messages(exerciseNameSchema(), 'Bench\tPress')).toEqual(['exerciseName must not contain control characters']);
+    expect(hasControlCharacter('Bench Press')).toBe(false);
+    expect(hasControlCharacter('Bench\u007fPress')).toBe(true);
   });
 });
