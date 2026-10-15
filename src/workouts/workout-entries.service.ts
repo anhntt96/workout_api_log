@@ -12,9 +12,10 @@ import {
   exerciseKey,
   unknownExercise,
 } from '../exercises/exercises.repository.js';
-import { WorkoutEntriesRepository } from './workout-entries.repository.js';
+import { entryIdempotencyKey } from './idempotency-key.js';
+import { type InsertResult, WorkoutEntriesRepository } from './workout-entries.repository.js';
 import type { LogEntriesBody, LogEntryInput } from './workout-entries.schemas.js';
-import type { NewEntry, WorkoutEntry } from './workout-entry.js';
+import type { NewEntry } from './workout-entry.js';
 
 @Injectable()
 export class WorkoutEntriesService {
@@ -27,8 +28,9 @@ export class WorkoutEntriesService {
   /**
    * Logs one or more entries for a user. Every entry is checked first and all problems are
    * reported together; then everything is written in one transaction (all-or-nothing, ADR 0004).
+   * With an idempotency key, a retry returns the entries stored the first time (ADR 0003).
    */
-  async logEntries(userId: string, body: LogEntriesBody): Promise<WorkoutEntry[]> {
+  async logEntries(userId: string, body: LogEntriesBody, idempotencyKey?: string): Promise<InsertResult> {
     const exercises = await this.exercises.resolveNames(body.entries.map((entry) => entry.exerciseName));
     const latestDate = latestAllowedWorkoutDate(this.clock.now());
     const errors: FieldError[] = [];
@@ -44,7 +46,8 @@ export class WorkoutEntriesService {
       if (exercise === undefined) {
         errors.push(unknownExercise(`entries[${index}].exerciseName`, entry.exerciseName));
       } else {
-        newEntries.push(toNewEntry(entry, exercise));
+        const key = idempotencyKey === undefined ? null : entryIdempotencyKey(idempotencyKey, index);
+        newEntries.push(toNewEntry(entry, exercise, key));
       }
     });
     if (errors.length > 0) throw new RequestValidationError(errors);
@@ -53,7 +56,7 @@ export class WorkoutEntriesService {
 }
 
 /** Normalizes weights to kilograms and computes the per-entry PR summary (ADR 0001). */
-function toNewEntry(entry: LogEntryInput, exercise: ExerciseRef): NewEntry {
+function toNewEntry(entry: LogEntryInput, exercise: ExerciseRef, idempotencyKey: string | null): NewEntry {
   const sets = entry.sets.map((set) => {
     const weight = roundForStorage(new Decimal(set.weight));
     return {
@@ -67,6 +70,7 @@ function toNewEntry(entry: LogEntryInput, exercise: ExerciseRef): NewEntry {
     id: randomUUID(),
     exerciseId: exercise.id,
     performedOn: entry.date,
+    idempotencyKey,
     summary: summarizeSets(sets),
     sets,
   };

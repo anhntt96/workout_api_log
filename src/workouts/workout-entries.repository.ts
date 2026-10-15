@@ -15,6 +15,13 @@ interface EntryRow {
   sets: StoredSet[];
 }
 
+export interface InsertResult {
+  /** Stored entries in request order: new ones, plus earlier ones that share an idempotency key. */
+  entries: WorkoutEntry[];
+  /** True when at least one entry already existed for its idempotency key. */
+  replayed: boolean;
+}
+
 /**
  * Completes an inner query that selects `workout_entries` rows (id, user_id, exercise_id,
  * performed_on, created_at, plus any column `orderBy` needs) with the exercise name and the
@@ -53,15 +60,27 @@ function toWorkoutEntry(row: EntryRow): WorkoutEntry {
 export class WorkoutEntriesRepository {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  /** Inserts entries and their sets in one transaction, so a bulk request is all-or-nothing. */
-  async insertEntries(userId: string, entries: readonly NewEntry[]): Promise<WorkoutEntry[]> {
+  /**
+   * Inserts entries and their sets in one transaction, so a bulk request is all-or-nothing.
+   * An entry whose idempotency key the user already has is skipped (ADR 0003), and the stored
+   * entry is returned instead. A parallel retry waits on the unique index until the first
+   * request commits, then takes the same path. If the first request rolls back, the retry inserts.
+   */
+  async insertEntries(userId: string, entries: readonly NewEntry[]): Promise<InsertResult> {
     return withTransaction(this.pool, async (client) => {
-      await insertEntryRows(client, userId, entries);
-      await insertSetRows(client, entries);
-      return this.findByIds(
-        entries.map((entry) => entry.id),
+      const insertedIds = await insertEntryRows(client, userId, entries);
+      await insertSetRows(
         client,
+        entries.filter((entry) => insertedIds.has(entry.id)),
       );
+      const keys = entries.map((entry) => entry.idempotencyKey);
+      const stored = keys.every((key): key is string => key !== null)
+        ? await this.findByIdempotencyKeys(userId, keys, client)
+        : await this.findByIds(
+            entries.map((entry) => entry.id),
+            client,
+          );
+      return { entries: stored, replayed: insertedIds.size < entries.length };
     });
   }
 
@@ -78,26 +97,53 @@ export class WorkoutEntriesRepository {
     );
     return rows.map(toWorkoutEntry);
   }
+
+  /** A user's entries by idempotency key, in the order of `keys`. */
+  async findByIdempotencyKeys(
+    userId: string,
+    keys: readonly string[],
+    db: Queryable = this.pool,
+  ): Promise<WorkoutEntry[]> {
+    const { rows } = await db.query<EntryRow>(
+      selectEntries(
+        `SELECT e.id, e.user_id, e.exercise_id, e.performed_on, e.created_at, e.idempotency_key
+         FROM workout_entries e
+         WHERE e.user_id = $1::uuid AND e.idempotency_key = ANY($2::text[])`,
+        'array_position($2::text[], p.idempotency_key)',
+      ),
+      [userId, keys],
+    );
+    return rows.map(toWorkoutEntry);
+  }
 }
 
-/** One multi-row INSERT for all entries of the request. */
-async function insertEntryRows(client: PoolClient, userId: string, entries: readonly NewEntry[]): Promise<void> {
-  await client.query(
+/** One multi-row INSERT that skips idempotency keys the user already has. Returns the ids inserted. */
+async function insertEntryRows(
+  client: PoolClient,
+  userId: string,
+  entries: readonly NewEntry[],
+): Promise<Set<string>> {
+  const { rows } = await client.query<{ id: string }>(
     `INSERT INTO workout_entries
-       (id, user_id, exercise_id, performed_on, best_weight_kg, best_volume_kg, best_e1rm_kg)
-     SELECT t.id, $1::uuid, t.exercise_id, t.performed_on, t.best_weight_kg, t.best_volume_kg, t.best_e1rm_kg
-     FROM unnest($2::uuid[], $3::uuid[], $4::date[], $5::numeric[], $6::numeric[], $7::numeric[])
-       AS t (id, exercise_id, performed_on, best_weight_kg, best_volume_kg, best_e1rm_kg)`,
+       (id, user_id, exercise_id, performed_on, idempotency_key, best_weight_kg, best_volume_kg, best_e1rm_kg)
+     SELECT t.id, $1::uuid, t.exercise_id, t.performed_on, t.idempotency_key,
+            t.best_weight_kg, t.best_volume_kg, t.best_e1rm_kg
+     FROM unnest($2::uuid[], $3::uuid[], $4::date[], $5::text[], $6::numeric[], $7::numeric[], $8::numeric[])
+       AS t (id, exercise_id, performed_on, idempotency_key, best_weight_kg, best_volume_kg, best_e1rm_kg)
+     ON CONFLICT (user_id, idempotency_key) DO NOTHING
+     RETURNING id`,
     [
       userId,
       entries.map((entry) => entry.id),
       entries.map((entry) => entry.exerciseId),
       entries.map((entry) => entry.performedOn),
+      entries.map((entry) => entry.idempotencyKey),
       entries.map((entry) => entry.summary.bestWeightKg.toFixed()),
       entries.map((entry) => entry.summary.bestVolumeKg.toFixed()),
       entries.map((entry) => entry.summary.bestE1rmKg.toFixed()),
     ],
   );
+  return new Set(rows.map((row) => row.id));
 }
 
 /** One multi-row INSERT for every set of the given entries. */

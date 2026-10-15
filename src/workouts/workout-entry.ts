@@ -33,6 +33,8 @@ export interface NewEntry {
   id: string;
   exerciseId: string;
   performedOn: string;
+  /** `K#i` when the request carried an Idempotency-Key, otherwise null (ADR 0003). */
+  idempotencyKey: string | null;
   summary: EntrySummary;
   sets: NewSet[];
 }
