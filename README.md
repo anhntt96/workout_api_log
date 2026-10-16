@@ -1,6 +1,6 @@
 # Workout Logging API
 
-Coaches log their clients' workouts and query history and personal records (PRs). The stack is NestJS 12, PostgreSQL 18 and TypeScript, and `docker compose up` brings it up.
+Coaches log their clients' workouts and query history and personal records (PRs). The stack is NestJS 12, PostgreSQL 18 and TypeScript, and `docker compose up` brings it up together with a React frontend for demos.
 
 - Bulk logging in `kg` or `lb`, normalized to kg and stored next to the logged values
 - History filtered by partial exercise name, muscle group and date range, returned in any unit, with cursor pagination
@@ -15,11 +15,11 @@ Design decisions are recorded as ADRs in [`docs/adr/`](docs/adr/).
 Requires Docker.
 
 ```bash
-docker compose up --build --wait     # API on http://localhost:3000, Postgres on localhost:5433
+docker compose up --build --wait     # UI on http://localhost:8080, API on http://localhost:3000, Postgres on localhost:5433
 scripts/demo.sh                      # walks through every endpoint and error case (needs curl, jq, uuidgen)
 ```
 
-If port 3000 or 5433 is taken, pick others: `API_PORT=3300 DB_PORT=5544 docker compose up --build --wait`, then `scripts/demo.sh http://localhost:3300`.
+If port 3000, 5433 or 8080 is taken, pick others: `API_PORT=3300 DB_PORT=5544 WEB_PORT=8180 docker compose up --build --wait`, then `scripts/demo.sh http://localhost:3300`.
 
 ```bash
 USER_ID=0b7e5f0e-8a39-4c1e-9d5a-2f1c3b4a5d6e
@@ -55,6 +55,31 @@ DATABASE_URL=postgres://workout:workout@localhost:5433/workout npm run start:dev
 | `DB_POOL_MAX` | `10` | Maximum Postgres connections per instance |
 
 Invalid configuration stops the app at startup with a message naming every bad variable.
+
+## Frontend
+
+`frontend/` is a React app for demoing the API. Docker Compose serves it on http://localhost:8080.
+
+- **Welcome:** enter or generate a client UUID. It is kept in `localStorage`, so the next visit opens that client's history.
+- **History:** entries grouped by day, filtered by partial exercise name, muscle group and date range (kept in the URL), with cursor paging through "Load more".
+- **Personal records:** the heaviest single set, highest-volume set and best Epley 1RM for one exercise, each with the day it was set, plus this week, month or year against the previous one.
+- **Log workout:** one session of several exercises and sets in kg or lb. The API's field errors appear next to the fields. Each form sends one `Idempotency-Key`, so a retry or a double click stores the session once.
+- **Load sample data:** one click logs eight weeks of workouts (48 entries, in kg and lb) for an empty client.
+- A kg/lb switch in the header converts every weight on screen.
+
+The stack is Vite 8, React 19, TypeScript, Tailwind CSS 4, TanStack Query and React Router. The browser only calls `/api/*` on its own origin. Vite (in development) and nginx (in Docker) proxy those calls to the API, so the API needs no CORS.
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173; proxies /api to http://localhost:3000 (set API_URL to change it)
+```
+
+| Command (in `frontend/`) | What it does |
+| --- | --- |
+| `npm test` | Unit and component tests (Vitest, Testing Library, MSW); no API needed |
+| `npm run lint` / `npm run typecheck` / `npm run build` | oxlint, `tsc --noEmit`, production build |
+| `npm run format:check` | Prettier, with Tailwind class sorting |
 
 ## Architecture
 
