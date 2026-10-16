@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import type { LogEntryInput } from '../../api/types';
-import { makeEntry } from '../../test/fixtures';
+import { hideRandomUuid, makeEntry } from '../../test/fixtures';
 import { renderApp } from '../../test/render';
 import { server } from '../../test/server';
 
@@ -115,6 +115,21 @@ describe('LogWorkoutPage', () => {
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(within(exercise(1)).queryByText('exerciseName must not be empty')).not.toBeInTheDocument();
+  });
+
+  it('still works where crypto.randomUUID is missing (plain-http origins such as a LAN address)', async () => {
+    const restore = hideRandomUuid();
+    try {
+      const posts = captureLogs();
+      const { user } = renderApp('/log');
+
+      await user.click(screen.getByRole('button', { name: 'Save workout' }));
+
+      await screen.findByRole('heading', { name: 'Workout history' });
+      expect(posts[0]?.key).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    } finally {
+      restore();
+    }
   });
 
   it('reuses the Idempotency-Key when retrying after a network failure', async () => {

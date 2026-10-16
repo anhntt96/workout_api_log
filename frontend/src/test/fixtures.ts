@@ -26,3 +26,11 @@ export function makeEntry(overrides: Partial<WorkoutEntry> = {}): WorkoutEntry {
     ...overrides,
   };
 }
+
+/** Makes `crypto.randomUUID` undefined, as browsers do on plain-http origins other than localhost. Returns a restore function. */
+export function hideRandomUuid(): () => void {
+  Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+  return () => {
+    delete (crypto as unknown as { randomUUID?: unknown }).randomUUID;
+  };
+}

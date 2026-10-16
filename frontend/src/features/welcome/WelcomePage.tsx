@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Field';
-import { isUuid } from '../../lib/uuid';
+import { isUuid, newUuid } from '../../lib/uuid';
 import { useSession } from '../../session/session';
 
 const FEATURES = [
@@ -82,7 +82,7 @@ export function WelcomePage() {
             Continue
             <ArrowRight aria-hidden="true" className="size-4" />
           </Button>
-          <Button variant="ghost" className="w-full" onClick={() => update(crypto.randomUUID())}>
+          <Button variant="ghost" className="w-full" onClick={() => update(newUuid())}>
             <Sparkles aria-hidden="true" className="size-4" />
             Generate a new client ID
           </Button>

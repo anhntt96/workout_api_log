@@ -10,6 +10,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Field';
 import { todayIsoDay } from '../../lib/dates';
 import { fieldErrorMap } from '../../lib/field-errors';
+import { newUuid } from '../../lib/uuid';
 import { useActiveSession } from '../../session/session';
 import type { HistoryLocationState } from '../history/HistoryPage';
 import { EntryFields } from './EntryFields';
@@ -32,7 +33,7 @@ export function LogWorkoutPage() {
   const today = todayIsoDay();
   const [state, dispatchForm] = useReducer(logFormReducer, undefined, () => initialLogForm(today, unit));
   // One key per form: a retry after a lost response replays instead of storing the session twice (ADR 0003).
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const [idempotencyKey] = useState(() => newUuid());
 
   const errors = logWorkouts.error instanceof ApiError ? fieldErrorMap(logWorkouts.error.errors) : NO_ERRORS;
   // Every entry carries the session date, so show the first entry date error on the one date field.
