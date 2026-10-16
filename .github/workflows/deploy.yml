@@ -62,6 +62,8 @@ jobs:
     # Runs after a successful build, or straight away for a rollback (ci and images are skipped then).
     if: ${{ github.ref == 'refs/heads/main' && !failure() && !cancelled() }}
     runs-on: ubuntu-24.04
+    # A hung deploy would otherwise hold the deploy-production group, and with it any rollback, for hours.
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: read
@@ -79,19 +81,12 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
-      - name: Copy the Compose file and scripts
-        run: scp -p deploy/compose.yaml deploy/deploy.sh deploy/backup.sh deploy/restore.sh deploy/r2-env.sh "$TARGET:/opt/workout/"
       - name: Deploy ${{ env.TAG }}
         env:
+          GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACTOR: ${{ github.actor }}
-        run: |
-          # The server keeps registry credentials only for the length of the deploy.
-          trap 'ssh "$TARGET" "docker logout ghcr.io" > /dev/null || true' EXIT
-          # shellcheck disable=SC2029 # ACTOR and TAG are meant to expand here, on the runner.
-          printf '%s' "$GHCR_TOKEN" | ssh "$TARGET" "docker login ghcr.io --username '$ACTOR' --password-stdin"
-          # shellcheck disable=SC2029
-          ssh "$TARGET" "/opt/workout/deploy.sh '$TAG'"
+        # Refuses anything but a full commit SHA, copies the files, and runs deploy.sh on the server.
+        run: deploy/ci-deploy.sh "$TARGET" "$TAG"
       - name: Smoke test the public URL
         run: |
           curl -fsS --retry 10 --retry-delay 5 --retry-all-errors https://workout.albertnguyen.dev/api/health

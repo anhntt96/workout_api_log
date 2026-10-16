@@ -64,6 +64,8 @@ jobs:
           echo "HTTP $status: $(cat body.json)"
           test "$status" = 503
           jq -e '.code == "SERVICE_UNAVAILABLE"' body.json
+      - name: Test the runner side of a deploy
+        run: deploy/test-ci-deploy.sh
       - name: Rehearse deploy.sh with the production Compose file
         run: deploy/test-deploy.sh
       - name: Show the local stack's logs

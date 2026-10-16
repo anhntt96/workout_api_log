@@ -18,6 +18,7 @@ This repo is a take-home backend assignment (Everfit): a **Workout Logging API**
 - `cd frontend && npm test` — frontend tests (Vitest, jsdom, Testing Library, MSW); `npm run lint`, `npm run typecheck`, `npm run build` and `npm run format:check` work there too.
 - `scripts/smoke-test.sh [BASE_URL] [--rate-limit]` — checks a running stack through nginx (default `http://localhost:8080`; production is `https://workout.albertnguyen.dev`). Use `--rate-limit` only against a local stack.
 - `deploy/test-deploy.sh` — rehearses `deploy/deploy.sh` with the production Compose file on port 8081: a failed first deploy, a good release, a backup and restore, and a broken release that rolls back. Needs Docker, curl, jq and rclone.
+- `deploy/test-ci-deploy.sh` — tests `deploy/ci-deploy.sh` (the runner side of a deploy: SHA-only tags, ssh timeouts, the Compose file swap) against stand-ins for ssh, scp and docker; needs only bash.
 
 ## Code conventions
 

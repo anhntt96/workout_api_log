@@ -20,14 +20,16 @@ flowchart LR
 | --- | --- | --- |
 | `deploy/cloud-init.yaml` | The VPS, at first boot | User `deploy`, SSH hardening, ufw, Docker, swap, the backup timer |
 | `deploy/compose.yaml` | `/opt/workout/compose.yaml` | The production stack; no service publishes a port |
-| `deploy/deploy.sh` | `/opt/workout/` | Switches `IMAGE_TAG`, waits for the health checks, rolls back on failure |
+| `deploy/deploy.sh` | `/opt/workout/` | Switches `IMAGE_TAG` and the Compose file, waits for the health checks, puts both back on failure |
+| `deploy/ci-deploy.sh` | The GitHub Actions runner | Refuses anything but a full commit SHA, copies the files, runs `deploy.sh` over ssh |
 | `deploy/backup.sh`, `restore.sh`, `r2-env.sh` | `/opt/workout/` | The nightly dump to R2; restoring a dump |
 | `deploy/test-deploy.sh` | CI and your machine | Rehearses deploy, rollback, and backup and restore with the production Compose file |
+| `deploy/test-ci-deploy.sh` | CI and your machine | Tests `ci-deploy.sh` against stand-ins for ssh, scp and docker |
 | `scripts/smoke-test.sh` | CI and after each deploy | Checks the UI, the API proxy, the headers and the error formats |
 | `.github/workflows/ci.yml` | Every pull request | Lint, types, unit and e2e tests, the Docker stack, the deploy rehearsal |
 | `.github/workflows/deploy.yml` | Every push to `main`, or by hand | CI, the image build to GHCR, the deploy, a smoke test |
 
-Every deploy copies `compose.yaml` and the scripts to the server, so the server can't drift from `main`. Only `/opt/workout/.env` is edited by hand.
+Every deploy copies the scripts and the release's `compose.yaml` to the server, so the server can't drift from `main`. The Compose file arrives as `compose.yaml.new`, and `deploy.sh` swaps it in, so a failed release gets its previous Compose file back along with its previous images. Only `/opt/workout/.env` is edited by hand.
 
 ## One-time setup
 
@@ -124,7 +126,7 @@ Unless a command says otherwise, run it on the server in `/opt/workout` as `depl
 
 ### Deploy
 
-Push or merge to `main`. During a deploy the API container restarts, and requests get JSON `503`s for a few seconds. If the new release isn't healthy within 3 minutes, `deploy.sh` puts the previous release back and the workflow fails, with the API's last 50 log lines in its log.
+Push or merge to `main`. During a deploy the API container restarts, and requests get JSON `503`s for a few seconds. If the new release isn't healthy within 3 minutes, `deploy.sh` puts the previous images and Compose file back and the workflow fails, with the API's last 50 log lines in its log.
 
 Migrations run when the API starts. Keep each one compatible with the previous release: add columns and tables now, and drop them a release later. A rollback runs the old code on the new schema.
 
