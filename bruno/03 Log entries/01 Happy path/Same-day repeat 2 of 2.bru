@@ -1,0 +1,43 @@
+meta {
+  name: Same-day repeat 2 of 2
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-20",
+        "exerciseName": "Overhead Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 60,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("creates a separate entry instead of merging or rejecting", function () {
+    expect(res.getBody().data[0].id).to.not.equal(bru.getVar("sameDayFirstId"));
+  });
+}
+
+docs {
+  ADR 0003: repeats of an exercise on the same day are separate entries. Use `Idempotency-Key` to make retries safe.
+}

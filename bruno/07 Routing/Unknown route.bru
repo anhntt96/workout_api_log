@@ -1,0 +1,23 @@
+meta {
+  name: Unknown route
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/workouts
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("is NOT_FOUND in the standard error format", function () {
+    expect(res.getBody().code).to.equal("NOT_FOUND");
+    expect(res.getBody().message).to.equal("Cannot GET /workouts");
+    expect(res.getBody().requestId).to.be.a("string");
+  });
+}

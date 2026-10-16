@@ -1,0 +1,33 @@
+meta {
+  name: Empty: no data in either period
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records/comparison?exerciseName=Deadlift&from=2026-10-01&to=2026-10-31&baselineFrom=2026-09-01&baselineTo=2026-09-30
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Deadlift
+  from: 2026-10-01
+  to: 2026-10-31
+  baselineFrom: 2026-09-01
+  baselineTo: 2026-09-30
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns null records and changes with a message", function () {
+    const data = res.getBody().data;
+    expect(data.current.records).to.deep.equal({ maxWeight: null, maxVolume: null, bestE1rm: null });
+    expect(data.baseline.records).to.deep.equal({ maxWeight: null, maxVolume: null, bestE1rm: null });
+    expect(data.change).to.deep.equal({ maxWeight: null, maxVolume: null, bestE1rm: null });
+    expect(res.getBody().message).to.equal("No Deadlift entries found for this user in either date range.");
+  });
+}

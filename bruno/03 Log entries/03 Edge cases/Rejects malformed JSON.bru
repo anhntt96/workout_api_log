@@ -1,0 +1,32 @@
+meta {
+  name: Rejects malformed JSON
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: text
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:text {
+  {"entries": [
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a BAD_REQUEST from the JSON parser", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("BAD_REQUEST");
+    expect(body.message).to.be.a("string").and.not.be.empty;
+    expect(body).to.not.have.property("errors");
+  });
+}

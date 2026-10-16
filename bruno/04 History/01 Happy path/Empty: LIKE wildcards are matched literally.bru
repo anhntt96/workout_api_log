@@ -1,0 +1,32 @@
+meta {
+  name: Empty: LIKE wildcards are matched literally
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?exerciseName=%25
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: %25
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns an empty page with a message", function () {
+    const body = res.getBody();
+    expect(body.data).to.deep.equal([]);
+    expect(body.page.nextCursor).to.equal(null);
+    expect(body.message).to.equal("No workout entries match the given filters.");
+  });
+}
+
+docs {
+  `%` would match everything if it were passed to `ILIKE` unescaped.
+}

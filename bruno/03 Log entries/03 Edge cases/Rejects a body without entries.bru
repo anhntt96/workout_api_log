@@ -1,0 +1,33 @@
+meta {
+  name: Rejects a body without entries
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "entries",
+        "message": "entries is required"
+      }
+    ]);
+  });
+}

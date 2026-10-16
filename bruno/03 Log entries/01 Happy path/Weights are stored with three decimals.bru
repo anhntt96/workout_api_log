@@ -1,0 +1,55 @@
+meta {
+  name: Weights are stored with three decimals
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-15",
+        "exerciseName": "Bicep Curl",
+        "sets": [
+          {
+            "reps": 10,
+            "weight": 12.5,
+            "unit": "kg"
+          },
+          {
+            "reps": 10,
+            "weight": 60.0005,
+            "unit": "kg"
+          },
+          {
+            "reps": 10,
+            "weight": 0.0004,
+            "unit": "kg"
+          },
+          {
+            "reps": 10,
+            "weight": 22.1234,
+            "unit": "lb"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("rounds half-up to grams and keeps shorter decimals exact", function () {
+    expect(res.getBody().data[0].sets.map(function (s) { return s.weight; }))
+      .to.deep.equal([12.5, 60.001, 0, 22.123]);
+  });
+}

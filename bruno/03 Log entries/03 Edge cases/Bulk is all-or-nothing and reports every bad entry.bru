@@ -1,0 +1,76 @@
+meta {
+  name: Bulk is all-or-nothing and reports every bad entry
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/users/{{atomicUserId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-08",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-08",
+        "exerciseName": "Benchpress",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2099-01-01",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+script:pre-request {
+  bru.setVar("atomicUserId", bru.getVar("newUserId"));
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("reports both bad entries together", function () {
+    const errors = res.getBody().errors;
+    expect(errors).to.have.length(2);
+    expect(errors[0]).to.deep.equal({
+      field: "entries[1].exerciseName",
+      message: 'Unknown exercise "Benchpress". GET /exercises lists the valid names'
+    });
+    expect(errors[1].field).to.equal("entries[2].date");
+    expect(errors[1].message).to.match(/^date must not be after \d{4}-\d{2}-\d{2} \(more than one day in the future\)$/);
+  });
+}
+
+docs {
+  Entry 0 is valid, entry 1 has an unknown exercise and entry 2 is far in the future. Uses a fresh user, checked by the next request.
+}

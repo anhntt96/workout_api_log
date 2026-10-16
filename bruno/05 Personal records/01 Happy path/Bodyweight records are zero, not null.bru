@@ -1,0 +1,38 @@
+meta {
+  name: Bodyweight records are zero, not null
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records?exerciseName=pull-up&to=2026-09-30
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: pull-up
+  to: 2026-09-30
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the expected records", function () {
+    const ids = JSON.parse(bru.getVar("prEntryIds"));
+    const rec = function (value, weight, reps, date, i) {
+      return { value: value, weight: weight, reps: reps, date: date, entryId: ids[i] };
+    };
+    expect(res.getBody().data).to.deep.equal({ exerciseName: "Pull-Up", unit: "kg", from: null, to: "2026-09-30", records: {
+      maxWeight: rec(0, 0, 10, "2026-09-10", 5),
+      maxVolume: rec(0, 0, 10, "2026-09-10", 5),
+      bestE1rm: rec(0, 0, 10, "2026-09-10", 5)
+    } });
+  });
+
+  test("has no message", function () {
+    expect(res.getBody()).to.not.have.property("message");
+  });
+}

@@ -1,0 +1,33 @@
+meta {
+  name: Rejects an unsupported unit
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?unit=stone
+  body: none
+  auth: none
+}
+
+params:query {
+  unit: stone
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "unit",
+        "message": "Unsupported unit \"stone\". Supported units: kg, lb"
+      }
+    ]);
+  });
+}

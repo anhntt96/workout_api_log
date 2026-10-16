@@ -1,0 +1,37 @@
+meta {
+  name: Percent is null when the baseline is zero
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records/comparison?exerciseName=Pull-Up&from=2026-10-01&to=2026-10-31&baselineFrom=2026-09-01&baselineTo=2026-09-30
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Pull-Up
+  from: 2026-10-01
+  to: 2026-10-31
+  baselineFrom: 2026-09-01
+  baselineTo: 2026-09-30
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("reports the absolute change only", function () {
+    expect(res.getBody().data.change).to.deep.equal({
+      maxWeight: { absolute: 10, percent: null },
+      maxVolume: { absolute: 50, percent: null },
+      bestE1rm: { absolute: 11.67, percent: null }
+    });
+  });
+}
+
+docs {
+  Baseline: 10 × 0 kg (bodyweight). Current: 5 × 10 kg.
+}

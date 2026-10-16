@@ -1,0 +1,50 @@
+meta {
+  name: This month vs last month in lb
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records/comparison?exerciseName=bench%20press&unit=lb&from=2026-10-01&to=2026-10-31&baselineFrom=2026-09-01&baselineTo=2026-09-30
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: bench%20press
+  unit: lb
+  from: 2026-10-01
+  to: 2026-10-31
+  baselineFrom: 2026-09-01
+  baselineTo: 2026-09-30
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("converts both periods and the absolute change; percentages are unit-independent", function () {
+    const ids = JSON.parse(bru.getVar("prEntryIds"));
+    const rec = function (value, weight, reps, date, i) {
+      return { value: value, weight: weight, reps: reps, date: date, entryId: ids[i] };
+    };
+    const data = res.getBody().data;
+    expect(data.unit).to.equal("lb");
+    expect(data.current.records).to.deep.equal({
+        maxWeight: rec(248.02, 248.02, 3, "2026-10-06", 2),
+        maxVolume: rec(1675.51, 209.44, 8, "2026-10-06", 2),
+        bestE1rm: rec(272.82, 248.02, 3, "2026-10-06", 2)
+      });
+    expect(data.baseline.records).to.deep.equal({
+        maxWeight: rec(242.51, 242.51, 1, "2026-09-22", 1),
+        maxVolume: rec(1102.31, 220.46, 5, "2026-09-08", 0),
+        bestE1rm: rec(257.21, 220.46, 5, "2026-09-08", 0)
+      });
+    expect(data.change).to.deep.equal({
+      maxWeight: { absolute: 5.51, percent: 2.27 },
+      maxVolume: { absolute: 573.2, percent: 52 },
+      bestE1rm: { absolute: 15.62, percent: 6.07 }
+    });
+  });
+}

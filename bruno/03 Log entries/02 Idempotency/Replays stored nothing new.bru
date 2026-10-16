@@ -1,0 +1,22 @@
+meta {
+  name: Replays stored nothing new
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("history holds only the two original entries", function () {
+    const original = JSON.parse(bru.getVar("idemFirstData")).map(function (e) { return e.id; }).sort();
+    expect(res.getBody().data.map(function (e) { return e.id; }).sort()).to.deep.equal(original);
+  });
+}

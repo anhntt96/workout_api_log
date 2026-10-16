@@ -1,0 +1,98 @@
+vars:pre-request {
+  baseUrl: https://workout.albertnguyen.dev/api
+}
+
+script:pre-request {
+  // Fresh values for every request. Seed requests copy newUserId into userId so each folder works on its own data.
+  function uuidv4() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
+  }
+  function utcDay(offsetDays) {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays))
+      .toISOString()
+      .slice(0, 10);
+  }
+  bru.setVar("newUserId", uuidv4());
+  bru.setVar("tomorrowUtc", utcDay(1));
+  bru.setVar("twoDaysAheadUtc", utcDay(2));
+  if (!bru.getVar("userId")) {
+    bru.setVar("userId", uuidv4());
+  }
+}
+
+tests {
+  // Contract shared by every endpoint: errors use one format.
+  if (res.getStatus() >= 400) {
+    test("error body uses the standard format", function () {
+      const body = res.getBody();
+      expect(body).to.be.an("object");
+      expect(body.statusCode).to.equal(res.getStatus());
+      expect(body.code).to.be.a("string");
+      expect(body.message).to.be.a("string");
+      Object.keys(body).forEach(function (key) {
+        expect(["statusCode", "code", "message", "errors", "requestId"]).to.include(key);
+      });
+      if (body.errors !== undefined) {
+        body.errors.forEach(function (e) {
+          expect(Object.keys(e).sort()).to.deep.equal(["field", "message"]);
+        });
+      }
+    });
+  }
+}
+
+docs {
+  # Workout Logging API – contract
+  
+  Coaches log client workouts and query history and personal records (PRs). There are no accounts:
+  the caller passes the client's `userId` (a UUID) in the path.
+  
+  | Method | Path | Purpose |
+  |--------|------|---------|
+  | GET | `/health` | Liveness and database check |
+  | GET | `/exercises` | Fixed exercise catalog with muscle groups |
+  | POST | `/users/{userId}/workout-entries` | Log one or more entries (all-or-nothing, optional `Idempotency-Key`) |
+  | GET | `/users/{userId}/workout-entries` | History: filters, unit conversion, cursor pagination |
+  | GET | `/users/{userId}/personal-records` | Max weight, max volume and best E1RM for one exercise |
+  | GET | `/users/{userId}/personal-records/comparison` | Records in one date range vs a baseline range |
+  
+  Every folder documents its endpoint. Each one has a **Happy path** and an **Edge cases** subfolder.
+  
+  ## Errors
+  
+  Every error has the same body. `errors` is present for validation failures and names each offending
+  input by path (`entries[2].sets[0].weight`, `from`, `userId`, `Idempotency-Key`, `body`, `query`).
+  
+  ```json
+  {
+    "statusCode": 400,
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed",
+    "errors": [{ "field": "entries[0].sets[0].unit", "message": "Unsupported unit \"stone\". Supported units: kg, lb" }],
+    "requestId": "4f6c…"
+  }
+  ```
+  
+  | Status | code |
+  |--------|------|
+  | 400 | `VALIDATION_ERROR` (invalid input) or `BAD_REQUEST` (malformed JSON) |
+  | 404 | `NOT_FOUND` (unknown route or method) |
+  | 413 | `PAYLOAD_TOO_LARGE` (body above 1 MB) |
+  | 500 / 503 | `INTERNAL_ERROR` / `SERVICE_UNAVAILABLE` |
+  
+  ## Running
+  
+  Pick an environment (Local, Docker web proxy, Live demo) and run the collection, or from the CLI:
+  
+  ```sh
+  cd bruno && npx @usebruno/cli run --env Local
+  ```
+  
+  Seed requests at the top of each data-dependent folder create a fresh client, so folders can run on
+  their own and in any order. Runtime variables set by the collection script:
+  `newUserId` (a new UUID per request), `tomorrowUtc`, `twoDaysAheadUtc`.
+}

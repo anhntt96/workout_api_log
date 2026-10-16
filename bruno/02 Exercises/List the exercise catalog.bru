@@ -1,0 +1,39 @@
+meta {
+  name: List the exercise catalog
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/exercises
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the 16 seeded exercises sorted by name", function () {
+    const names = res.getBody().data.map(function (e) { return e.name; });
+    expect(names).to.deep.equal([
+      "Back Squat", "Barbell Row", "Bench Press", "Bicep Curl", "Calf Raise", "Deadlift",
+      "Front Squat", "Hip Thrust", "Incline Bench Press", "Lat Pulldown", "Leg Press",
+      "Overhead Press", "Pull-Up", "Romanian Deadlift", "Tricep Pushdown", "Walking Lunge"
+    ]);
+  });
+
+  test("each item is { name, muscleGroups } with sorted, non-empty muscle groups", function () {
+    res.getBody().data.forEach(function (e) {
+      expect(Object.keys(e).sort()).to.deep.equal(["muscleGroups", "name"]);
+      expect(e.muscleGroups).to.not.be.empty;
+      expect(e.muscleGroups).to.deep.equal(e.muscleGroups.slice().sort());
+    });
+  });
+
+  test("maps Bench Press to chest, shoulders and triceps", function () {
+    const bench = res.getBody().data.find(function (e) { return e.name === "Bench Press"; });
+    expect(bench.muscleGroups).to.deep.equal(["chest", "shoulders", "triceps"]);
+  });
+}

@@ -1,0 +1,21 @@
+meta {
+  name: DELETE is not supported on entries
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/users/{{newUserId}}/workout-entries
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("is NOT_FOUND", function () {
+    expect(res.getBody().code).to.equal("NOT_FOUND");
+  });
+}

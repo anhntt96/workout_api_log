@@ -1,0 +1,72 @@
+meta {
+  name: Log a single entry
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-08",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          },
+          {
+            "reps": 3,
+            "weight": 105,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+script:pre-request {
+  bru.setVar("userId", bru.getVar("newUserId"));
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("every entry has the documented shape", function () {
+    res.getBody().data.forEach(function (e) {
+      expect(Object.keys(e).sort()).to.deep.equal(["createdAt", "date", "exerciseName", "id", "sets", "userId"]);
+      expect(e.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(e.userId).to.equal(bru.getVar("userId"));
+      expect(e.createdAt).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/);
+    });
+  });
+
+  test("echoes the entry as logged", function () {
+    const e = res.getBody().data[0];
+    expect(res.getBody().data).to.have.length(1);
+    expect(e.date).to.equal("2026-09-08");
+    expect(e.exerciseName).to.equal("Bench Press");
+    expect(e.sets).to.deep.equal([
+      { reps: 5, weight: 100, unit: "kg" },
+      { reps: 3, weight: 105, unit: "kg" }
+    ]);
+  });
+
+  test("is not marked as a replay", function () {
+    expect(res.getHeader("idempotent-replayed")).to.equal(undefined);
+  });
+}
+
+docs {
+  Creates a fresh client (`userId`) and logs one entry with two sets.
+}

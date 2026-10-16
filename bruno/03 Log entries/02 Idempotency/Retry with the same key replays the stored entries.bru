@@ -1,0 +1,58 @@
+meta {
+  name: Retry with the same key replays the stored entries
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+headers {
+  Idempotency-Key: {{idemKey}}
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-25",
+        "exerciseName": "Barbell Row",
+        "sets": [
+          {
+            "reps": 8,
+            "weight": 70,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-25",
+        "exerciseName": "Lat Pulldown",
+        "sets": [
+          {
+            "reps": 10,
+            "weight": 55,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("sets Idempotent-Replayed: true", function () {
+    expect(res.getHeader("idempotent-replayed")).to.equal("true");
+  });
+
+  test("returns the original entries (same ids and createdAt)", function () {
+    expect(res.getBody().data).to.deep.equal(JSON.parse(bru.getVar("idemFirstData")));
+  });
+}

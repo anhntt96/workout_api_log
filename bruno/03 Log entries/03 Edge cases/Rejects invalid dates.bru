@@ -1,0 +1,141 @@
+meta {
+  name: Rejects invalid dates
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-02-30",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-08T06:00:00",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "08/09/2026",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-08T25:00:00+07:00",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-09T01:00:00+15:00",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": 20260908,
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "entries[0].date",
+        "message": "\"2026-02-30\" is not a valid calendar date"
+      },
+      {
+        "field": "entries[1].date",
+        "message": "datetime must include a UTC offset, e.g. 2026-10-14T06:00:00+07:00, or be a plain date (YYYY-MM-DD)"
+      },
+      {
+        "field": "entries[2].date",
+        "message": "date must be YYYY-MM-DD or an ISO 8601 datetime with an offset"
+      },
+      {
+        "field": "entries[3].date",
+        "message": "\"2026-09-08T25:00:00+07:00\" is not a valid ISO 8601 datetime"
+      },
+      {
+        "field": "entries[4].date",
+        "message": "\"2026-09-09T01:00:00+15:00\" is not a valid ISO 8601 datetime"
+      },
+      {
+        "field": "entries[5].date",
+        "message": "date must be YYYY-MM-DD or an ISO 8601 datetime with an offset"
+      },
+      {
+        "field": "entries[6].date",
+        "message": "date must be a string"
+      }
+    ]);
+  });
+}
+
+docs {
+  Impossible calendar day, datetime without an offset, wrong format, hour 25, offset beyond ±14:00, empty, and a number.
+}

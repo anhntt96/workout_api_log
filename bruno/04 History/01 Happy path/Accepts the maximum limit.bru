@@ -1,0 +1,25 @@
+meta {
+  name: Accepts the maximum limit
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?limit=100
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 100
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("echoes the limit", function () {
+    expect(res.getBody().page).to.deep.equal({ limit: 100, nextCursor: null });
+  });
+}

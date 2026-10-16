@@ -1,0 +1,63 @@
+meta {
+  name: First request with a key stores the entries
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+headers {
+  Idempotency-Key: {{idemKey}}
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-25",
+        "exerciseName": "Barbell Row",
+        "sets": [
+          {
+            "reps": 8,
+            "weight": 70,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-25",
+        "exerciseName": "Lat Pulldown",
+        "sets": [
+          {
+            "reps": 10,
+            "weight": 55,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+script:pre-request {
+  bru.setVar("userId", bru.getVar("newUserId"));
+  bru.setVar("idemKey", "bruno-" + bru.getVar("newUserId"));
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("is not marked as a replay", function () {
+    expect(res.getHeader("idempotent-replayed")).to.equal(undefined);
+  });
+
+  test("saves the response for the retries", function () {
+    bru.setVar("idemFirstData", JSON.stringify(res.getBody().data));
+  });
+}

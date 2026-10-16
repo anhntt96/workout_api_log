@@ -1,0 +1,43 @@
+meta {
+  name: Accepts a date one day after the UTC date
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "{{tomorrowUtc}}",
+        "exerciseName": "Hip Thrust",
+        "sets": [
+          {
+            "reps": 8,
+            "weight": 120,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("stores tomorrow (UTC) as the date", function () {
+    expect(res.getBody().data[0].date).to.equal(bru.getVar("tomorrowUtc"));
+  });
+}
+
+docs {
+  ADR 0002 allows one day of slack so clients ahead of UTC can log their "today". `tomorrowUtc` is set by the collection script.
+}

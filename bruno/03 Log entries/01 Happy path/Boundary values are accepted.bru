@@ -1,0 +1,54 @@
+meta {
+  name: Boundary values are accepted
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-16",
+        "exerciseName": "Leg Press",
+        "sets": [
+          {
+            "reps": 1,
+            "weight": 0,
+            "unit": "kg"
+          },
+          {
+            "reps": 1000,
+            "weight": 5000,
+            "unit": "kg"
+          },
+          {
+            "reps": 1,
+            "weight": 5000,
+            "unit": "lb"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("accepts reps 1 and 1000 and weight 0 and 5000 (in either unit)", function () {
+    const e = res.getBody().data[0];
+    expect(e.sets).to.deep.equal([
+      { reps: 1, weight: 0, unit: "kg" },
+      { reps: 1000, weight: 5000, unit: "kg" },
+      { reps: 1, weight: 5000, unit: "lb" }
+    ]);
+  });
+}

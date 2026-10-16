@@ -1,0 +1,37 @@
+meta {
+  name: Rejects an exercise that is not in the catalog
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records/comparison?exerciseName=Squat&from=2026-10-01&to=2026-10-31&baselineFrom=2026-09-01&baselineTo=2026-09-30
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Squat
+  from: 2026-10-01
+  to: 2026-10-31
+  baselineFrom: 2026-09-01
+  baselineTo: 2026-09-30
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "exerciseName",
+        "message": "Unknown exercise \"Squat\". GET /exercises lists the valid names"
+      }
+    ]);
+  });
+}

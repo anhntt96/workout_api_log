@@ -1,0 +1,33 @@
+meta {
+  name: Identical periods are allowed
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records/comparison?exerciseName=Bench%20Press&from=2026-09-01&to=2026-10-31&baselineFrom=2026-09-01&baselineTo=2026-10-31
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Bench%20Press
+  from: 2026-09-01
+  to: 2026-10-31
+  baselineFrom: 2026-09-01
+  baselineTo: 2026-10-31
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("reports zero change", function () {
+    expect(res.getBody().data.change).to.deep.equal({
+      maxWeight: { absolute: 0, percent: 0 },
+      maxVolume: { absolute: 0, percent: 0 },
+      bestE1rm: { absolute: 0, percent: 0 }
+    });
+  });
+}

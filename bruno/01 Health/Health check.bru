@@ -1,0 +1,21 @@
+meta {
+  name: Health check
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("reports ok", function () {
+    expect(res.getBody()).to.deep.equal({ status: "ok" });
+  });
+}

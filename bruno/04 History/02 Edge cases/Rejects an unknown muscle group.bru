@@ -1,0 +1,33 @@
+meta {
+  name: Rejects an unknown muscle group
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?muscleGroup=wings
+  body: none
+  auth: none
+}
+
+params:query {
+  muscleGroup: wings
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "muscleGroup",
+        "message": "Unknown muscle group \"wings\". Valid muscle groups: back, biceps, calves, chest, core, glutes, hamstrings, quadriceps, shoulders, triceps"
+      }
+    ]);
+  });
+}

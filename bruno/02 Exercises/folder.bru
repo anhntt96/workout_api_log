@@ -1,0 +1,23 @@
+meta {
+  name: 02 Exercises
+  seq: 2
+}
+
+docs {
+  # GET /exercises
+
+  The fixed exercise catalog (ADR 0004), sorted by name, each with its muscle groups sorted by name.
+  The API never creates exercises: `exerciseName` in every other endpoint must match one of these names
+  (trimmed, case-insensitive), and responses return the canonical spelling.
+
+  ```json
+  {
+    "data": [
+      { "name": "Back Squat", "muscleGroups": ["glutes", "hamstrings", "quadriceps"] },
+      { "name": "Barbell Row", "muscleGroups": ["back", "biceps"] }
+    ]
+  }
+  ```
+
+  Muscle groups: back, biceps, calves, chest, core, glutes, hamstrings, quadriceps, shoulders, triceps.
+}

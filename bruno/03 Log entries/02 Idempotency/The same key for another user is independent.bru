@@ -1,0 +1,59 @@
+meta {
+  name: The same key for another user is independent
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/users/{{newUserId}}/workout-entries
+  body: json
+  auth: none
+}
+
+headers {
+  Idempotency-Key: {{idemKey}}
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-25",
+        "exerciseName": "Barbell Row",
+        "sets": [
+          {
+            "reps": 8,
+            "weight": 70,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-25",
+        "exerciseName": "Lat Pulldown",
+        "sets": [
+          {
+            "reps": 10,
+            "weight": 55,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("is not a replay", function () {
+    expect(res.getHeader("idempotent-replayed")).to.equal(undefined);
+  });
+
+  test("creates new entries", function () {
+    const original = JSON.parse(bru.getVar("idemFirstData")).map(function (e) { return e.id; });
+    res.getBody().data.forEach(function (e) { expect(original).to.not.include(e.id); });
+  });
+}

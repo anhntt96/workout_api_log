@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Workout Logging API",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

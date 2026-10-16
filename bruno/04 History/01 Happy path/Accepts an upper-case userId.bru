@@ -1,0 +1,31 @@
+meta {
+  name: Accepts an upper-case userId
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/users/{{userIdUpper}}/workout-entries
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setVar("userIdUpper", bru.getVar("userId").toUpperCase());
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the same entries", function () {
+    const seeded = JSON.parse(bru.getVar("historyIds"));
+    const expected = [0, 1, 2, 3, 4].map(function (i) { return seeded[i]; }).sort();
+    expect(res.getBody().data.map(function (e) { return e.id; }).sort()).to.deep.equal(expected);
+  });
+
+  test("returns the userId in lower case", function () {
+    expect(res.getBody().data[0].userId).to.equal(bru.getVar("userId"));
+  });
+}

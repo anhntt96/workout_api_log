@@ -1,0 +1,43 @@
+meta {
+  name: A 200-character key is accepted
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/users/{{newUserId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-08",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+script:pre-request {
+  req.setHeader("Idempotency-Key", "k".repeat(200));
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  The header is set by the pre-request script.
+}

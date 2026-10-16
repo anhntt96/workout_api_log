@@ -1,0 +1,26 @@
+meta {
+  name: Empty: catalog exercise never logged
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records?exerciseName=deadlift
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: deadlift
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns null records with a message", function () {
+    expect(res.getBody().data).to.deep.equal({ exerciseName: "Deadlift", unit: "kg", from: null, to: null, records: { maxWeight: null, maxVolume: null, bestE1rm: null } });
+    expect(res.getBody().message).to.equal("No Deadlift entries found for this user.");
+  });
+}

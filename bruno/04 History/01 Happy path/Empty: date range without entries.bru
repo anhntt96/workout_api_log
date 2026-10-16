@@ -1,0 +1,29 @@
+meta {
+  name: Empty: date range without entries
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?from=2025-01-01&to=2025-12-31
+  body: none
+  auth: none
+}
+
+params:query {
+  from: 2025-01-01
+  to: 2025-12-31
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns an empty page with a message", function () {
+    const body = res.getBody();
+    expect(body.data).to.deep.equal([]);
+    expect(body.page.nextCursor).to.equal(null);
+    expect(body.message).to.equal("No workout entries match the given filters.");
+  });
+}

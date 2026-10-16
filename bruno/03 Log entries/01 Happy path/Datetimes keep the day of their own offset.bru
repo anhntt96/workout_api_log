@@ -1,0 +1,105 @@
+meta {
+  name: Datetimes keep the day of their own offset
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-09T01:00:00+07:00",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 140,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-08T23:30:00-05:00",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 140,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-10T12:00:00Z",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 140,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-11T06:00:00.123+07:00",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 140,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-12T06:00+07:00",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 140,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": " 2026-09-13 ",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 140,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("uses the calendar day in the given offset, never the UTC day", function () {
+    expect(res.getBody().data.map(function (e) { return e.date; })).to.deep.equal([
+      "2026-09-09", // UTC would be 2026-09-08
+      "2026-09-08", // UTC would be 2026-09-09
+      "2026-09-10",
+      "2026-09-11", // fractional seconds
+      "2026-09-12", // no seconds
+      "2026-09-13"  // surrounding whitespace is trimmed
+    ]);
+  });
+}
+
+docs {
+  ADR 0002: the `date` is the client's local calendar day. A datetime is read in the offset it carries.
+}

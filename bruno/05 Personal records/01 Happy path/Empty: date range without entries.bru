@@ -1,0 +1,28 @@
+meta {
+  name: Empty: date range without entries
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records?exerciseName=Bench%20Press&from=2025-01-01&to=2025-12-31
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Bench%20Press
+  from: 2025-01-01
+  to: 2025-12-31
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns null records with a message about the range", function () {
+    expect(res.getBody().data.records).to.deep.equal({ maxWeight: null, maxVolume: null, bestE1rm: null });
+    expect(res.getBody().message).to.equal("No Bench Press entries found for this user in the given date range.");
+  });
+}

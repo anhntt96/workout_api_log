@@ -1,0 +1,38 @@
+meta {
+  name: Records up to a date (only to)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records?exerciseName=Bench%20Press&to=2026-09-08
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Bench%20Press
+  to: 2026-09-08
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the expected records", function () {
+    const ids = JSON.parse(bru.getVar("prEntryIds"));
+    const rec = function (value, weight, reps, date, i) {
+      return { value: value, weight: weight, reps: reps, date: date, entryId: ids[i] };
+    };
+    expect(res.getBody().data).to.deep.equal({ exerciseName: "Bench Press", unit: "kg", from: null, to: "2026-09-08", records: {
+      maxWeight: rec(105, 105, 3, "2026-09-08", 0),
+      maxVolume: rec(500, 100, 5, "2026-09-08", 0),
+      bestE1rm: rec(116.67, 100, 5, "2026-09-08", 0)
+    } });
+  });
+}
+
+docs {
+  The `to` bound is inclusive.
+}

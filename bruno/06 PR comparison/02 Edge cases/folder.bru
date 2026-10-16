@@ -1,0 +1,38 @@
+meta {
+  name: 02 Edge cases
+  seq: 2
+}
+
+docs {
+  # GET /users/{userId}/personal-records/comparison
+
+  Records in a current date range against a baseline range, e.g. this month vs last month. The client sends
+  explicit ranges; the server never computes "this month" (ADR 0002).
+
+  | Query | Rules |
+  |-------|-------|
+  | `exerciseName` | **required**, catalog name (trimmed, case-insensitive) |
+  | `unit` | `kg` (default) or `lb` |
+  | `from`, `to` | **required**, inclusive current range, `from <= to` |
+  | `baselineFrom`, `baselineTo` | **required**, inclusive baseline range, `baselineFrom <= baselineTo` |
+
+  Ranges may overlap. `change` per metric is `{ absolute, percent }` (current − baseline, rounded to 2 decimals);
+  it is `null` when either period has no record, and `percent` is `null` when the baseline value is 0.
+
+  ```json
+  {
+    "data": {
+      "exerciseName": "Bench Press", "unit": "kg",
+      "current": { "from": "2026-10-01", "to": "2026-10-31", "records": { "maxWeight": { … }, "maxVolume": { … }, "bestE1rm": { … } } },
+      "baseline": { "from": "2026-09-01", "to": "2026-09-30", "records": { … } },
+      "change": {
+        "maxWeight": { "absolute": 2.5, "percent": 2.27 },
+        "maxVolume": { "absolute": 260, "percent": 52 },
+        "bestE1rm": { "absolute": 7.08, "percent": 6.07 }
+      }
+    }
+  }
+  ```
+
+  `message` is added when neither period has data.
+}

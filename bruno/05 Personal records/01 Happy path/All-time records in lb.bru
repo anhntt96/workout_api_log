@@ -1,0 +1,38 @@
+meta {
+  name: All-time records in lb
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records?exerciseName=%20%20bench%20PRESS%20&unit=lb
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: %20%20bench%20PRESS%20
+  unit: lb
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the expected records", function () {
+    const ids = JSON.parse(bru.getVar("prEntryIds"));
+    const rec = function (value, weight, reps, date, i) {
+      return { value: value, weight: weight, reps: reps, date: date, entryId: ids[i] };
+    };
+    expect(res.getBody().data).to.deep.equal({ exerciseName: "Bench Press", unit: "lb", from: null, to: null, records: {
+      maxWeight: rec(248.02, 248.02, 3, "2026-10-06", 2),
+      maxVolume: rec(1675.51, 209.44, 8, "2026-10-06", 2),
+      bestE1rm: rec(272.82, 248.02, 3, "2026-10-06", 2)
+    } });
+  });
+}
+
+docs {
+  The name is matched trimmed and case-insensitively; the response returns the canonical name.
+}

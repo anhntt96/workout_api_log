@@ -1,0 +1,28 @@
+meta {
+  name: Filter by a single day
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?from=2026-09-08&to=2026-09-08
+  body: none
+  auth: none
+}
+
+params:query {
+  from: 2026-09-08
+  to: 2026-09-08
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns that day only, including the entry logged as a +07:00 datetime", function () {
+    const seeded = JSON.parse(bru.getVar("historyIds"));
+    const expected = [0, 1].map(function (i) { return seeded[i]; }).sort();
+    expect(res.getBody().data.map(function (e) { return e.id; }).sort()).to.deep.equal(expected);
+  });
+}

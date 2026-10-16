@@ -1,0 +1,37 @@
+meta {
+  name: Convert weights to lb
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?unit=lb
+  body: none
+  auth: none
+}
+
+params:query {
+  unit: lb
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("converts kg sets and rounds to two decimals", function () {
+    const seeded = JSON.parse(bru.getVar("historyIds"));
+    const byId = {};
+    res.getBody().data.forEach(function (e) { byId[e.id] = e; });
+    expect(byId[seeded[0]].sets).to.deep.equal([
+      { reps: 5, weight: 220.46, unit: "lb" },
+      { reps: 3, weight: 231.49, unit: "lb" }
+    ]);
+    expect(byId[seeded[4]].sets).to.deep.equal([{ reps: 10, weight: 0, unit: "lb" }]);
+  });
+
+  test("keeps sets logged in lb exact", function () {
+    const squat = res.getBody().data.find(function (e) { return e.exerciseName === "Back Squat"; });
+    expect(squat.sets).to.deep.equal([{ reps: 5, weight: 225, unit: "lb" }]);
+  });
+}

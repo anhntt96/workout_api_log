@@ -1,0 +1,26 @@
+meta {
+  name: Convert weights to kg
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?unit=KG
+  body: none
+  auth: none
+}
+
+params:query {
+  unit: KG
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("converts lb sets to kg", function () {
+    const squat = res.getBody().data.find(function (e) { return e.exerciseName === "Back Squat"; });
+    expect(squat.sets).to.deep.equal([{ reps: 5, weight: 102.06, unit: "kg" }]);
+  });
+}

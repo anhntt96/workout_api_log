@@ -1,0 +1,27 @@
+meta {
+  name: Filter with only to
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?to=2026-09-21
+  body: none
+  auth: none
+}
+
+params:query {
+  to: 2026-09-21
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns entries on or before to", function () {
+    const seeded = JSON.parse(bru.getVar("historyIds"));
+    const expected = [0, 1].map(function (i) { return seeded[i]; }).sort();
+    expect(res.getBody().data.map(function (e) { return e.id; }).sort()).to.deep.equal(expected);
+  });
+}

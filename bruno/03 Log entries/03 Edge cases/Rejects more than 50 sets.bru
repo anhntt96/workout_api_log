@@ -1,0 +1,49 @@
+meta {
+  name: Rejects more than 50 sets
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": []
+  }
+}
+
+script:pre-request {
+  req.setBody({
+    entries: [{
+      date: "2026-08-01",
+      exerciseName: "Calf Raise",
+      sets: Array.from({ length: 51 }, function () { return { reps: 10, weight: 40, unit: "kg" }; })
+    }]
+  });
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "entries[0].sets",
+        "message": "sets must contain at most 50 sets"
+      }
+    ]);
+  });
+}
+
+docs {
+  The body is built by the pre-request script.
+}

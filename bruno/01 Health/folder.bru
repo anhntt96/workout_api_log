@@ -1,0 +1,15 @@
+meta {
+  name: 01 Health
+  seq: 1
+}
+
+docs {
+  # GET /health
+
+  Liveness and database reachability (used by the Docker health check).
+
+  | Status | Body |
+  |--------|------|
+  | 200 | `{ "status": "ok" }` |
+  | 503 | `SERVICE_UNAVAILABLE` error when Postgres is unreachable |
+}

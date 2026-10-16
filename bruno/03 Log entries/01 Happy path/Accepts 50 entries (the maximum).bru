@@ -1,0 +1,42 @@
+meta {
+  name: Accepts 50 entries (the maximum)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/users/{{newUserId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": []
+  }
+}
+
+script:pre-request {
+  req.setBody({
+    entries: Array.from({ length: 50 }, function (_, i) {
+      return { date: "2026-08-01", exerciseName: "Calf Raise", sets: [{ reps: i + 1, weight: 40, unit: "kg" }] };
+    })
+  });
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("stores all 50 in request order", function () {
+    const reps = res.getBody().data.map(function (e) { return e.sets[0].reps; });
+    expect(reps).to.have.length(50);
+    expect(reps[0]).to.equal(1);
+    expect(reps[49]).to.equal(50);
+  });
+}
+
+docs {
+  The body is built by the pre-request script.
+}

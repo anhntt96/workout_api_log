@@ -1,0 +1,45 @@
+meta {
+  name: Rejects a JSON array as the body
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  [
+    {
+      "date": "2026-09-08",
+      "exerciseName": "Bench Press",
+      "sets": [
+        {
+          "reps": 5,
+          "weight": 100,
+          "unit": "kg"
+        }
+      ]
+    }
+  ]
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "body",
+        "message": "Request body must be a JSON object"
+      }
+    ]);
+  });
+}

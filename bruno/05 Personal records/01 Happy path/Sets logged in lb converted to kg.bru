@@ -1,0 +1,37 @@
+meta {
+  name: Sets logged in lb converted to kg
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records?exerciseName=Back%20Squat
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Back%20Squat
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the expected records", function () {
+    const ids = JSON.parse(bru.getVar("prEntryIds"));
+    const rec = function (value, weight, reps, date, i) {
+      return { value: value, weight: weight, reps: reps, date: date, entryId: ids[i] };
+    };
+    expect(res.getBody().data).to.deep.equal({ exerciseName: "Back Squat", unit: "kg", from: null, to: null, records: {
+      maxWeight: rec(102.06, 102.06, 5, "2026-10-08", 4),
+      maxVolume: rec(510.29, 102.06, 5, "2026-10-08", 4),
+      bestE1rm: rec(119.07, 102.06, 5, "2026-10-08", 4)
+    } });
+  });
+}
+
+docs {
+  225 lb = 102.0582833 kg. Volume and E1RM are computed from the unrounded weight, then rounded.
+}

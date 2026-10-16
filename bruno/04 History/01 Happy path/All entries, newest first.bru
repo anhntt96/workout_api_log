@@ -1,0 +1,37 @@
+meta {
+  name: All entries, newest first
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("is ordered newest first", function () {
+    expect(res.getBody().data.map(function (e) { return e.date; })).to.deep.equal(["2026-10-06","2026-10-06","2026-09-22","2026-09-08","2026-09-08"]);
+  });
+
+  test("returns every seeded entry", function () {
+    const seeded = JSON.parse(bru.getVar("historyIds"));
+    const expected = [0, 1, 2, 3, 4].map(function (i) { return seeded[i]; }).sort();
+    expect(res.getBody().data.map(function (e) { return e.id; }).sort()).to.deep.equal(expected);
+  });
+
+  test("uses the default page size and has no further page", function () {
+    expect(res.getBody().page).to.deep.equal({ limit: 20, nextCursor: null });
+    expect(res.getBody()).to.not.have.property("message");
+  });
+
+  test("returns sets as logged", function () {
+    const squat = res.getBody().data.find(function (e) { return e.exerciseName === "Back Squat"; });
+    expect(squat.sets).to.deep.equal([{ reps: 5, weight: 225, unit: "lb" }]);
+  });
+}

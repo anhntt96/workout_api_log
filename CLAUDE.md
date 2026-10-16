@@ -14,6 +14,7 @@ This repo is a take-home backend assignment (Everfit): a **Workout Logging API**
 - `npm run test:e2e` — e2e tests (`test/**/*.e2e-spec.ts`) against a Testcontainers Postgres 18; Docker must be running.
 - `npm run lint` (oxlint, type-aware), `npm run typecheck`, `npm run build`.
 - `scripts/demo.sh` — curl walkthrough of every endpoint and error case.
+- `cd bruno && npx @usebruno/cli run --env Local` — Bruno API contract collection (happy paths and edge cases, with tests) against a running API; envs: `Local`, `Docker web proxy`, `Live demo`.
 - `cd frontend && npm run dev` — React UI on :5173; proxies `/api` to the API on :3000 (`API_URL` overrides).
 - `cd frontend && npm test` — frontend tests (Vitest, jsdom, Testing Library, MSW); `npm run lint`, `npm run typecheck`, `npm run build` and `npm run format:check` work there too.
 

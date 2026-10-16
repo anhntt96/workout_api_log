@@ -1,0 +1,28 @@
+meta {
+  name: Rejected bulk stored nothing
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/users/{{atomicUserId}}/workout-entries
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns an empty page with a message", function () {
+    const body = res.getBody();
+    expect(body.data).to.deep.equal([]);
+    expect(body.page.nextCursor).to.equal(null);
+    expect(body.message).to.equal("No workout entries match the given filters.");
+  });
+}
+
+docs {
+  The valid first entry of the rejected bulk request was not stored either.
+}

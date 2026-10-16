@@ -1,0 +1,74 @@
+meta {
+  name: Rejects invalid weights
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-08",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 1,
+            "weight": -1,
+            "unit": "kg"
+          },
+          {
+            "reps": 1,
+            "weight": 5000.01,
+            "unit": "kg"
+          },
+          {
+            "reps": 1,
+            "weight": null,
+            "unit": "kg"
+          },
+          {
+            "reps": 1,
+            "weight": "100",
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "entries[0].sets[0].weight",
+        "message": "weight must not be negative"
+      },
+      {
+        "field": "entries[0].sets[1].weight",
+        "message": "weight must be at most 5000"
+      },
+      {
+        "field": "entries[0].sets[2].weight",
+        "message": "weight is required"
+      },
+      {
+        "field": "entries[0].sets[3].weight",
+        "message": "weight must be a number"
+      }
+    ]);
+  });
+}

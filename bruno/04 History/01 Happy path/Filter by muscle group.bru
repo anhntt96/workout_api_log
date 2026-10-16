@@ -1,0 +1,27 @@
+meta {
+  name: Filter by muscle group
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?muscleGroup=Back
+  body: none
+  auth: none
+}
+
+params:query {
+  muscleGroup: Back
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns only Pull-Up (Back Squat does not train back)", function () {
+    const seeded = JSON.parse(bru.getVar("historyIds"));
+    const expected = [4].map(function (i) { return seeded[i]; }).sort();
+    expect(res.getBody().data.map(function (e) { return e.id; }).sort()).to.deep.equal(expected);
+  });
+}

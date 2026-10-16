@@ -1,0 +1,34 @@
+meta {
+  name: Sets logged in lb stay exact in lb
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records?exerciseName=Back%20Squat&unit=lb
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Back%20Squat
+  unit: lb
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the expected records", function () {
+    const ids = JSON.parse(bru.getVar("prEntryIds"));
+    const rec = function (value, weight, reps, date, i) {
+      return { value: value, weight: weight, reps: reps, date: date, entryId: ids[i] };
+    };
+    expect(res.getBody().data).to.deep.equal({ exerciseName: "Back Squat", unit: "lb", from: null, to: null, records: {
+      maxWeight: rec(225, 225, 5, "2026-10-08", 4),
+      maxVolume: rec(1125, 225, 5, "2026-10-08", 4),
+      bestE1rm: rec(262.5, 225, 5, "2026-10-08", 4)
+    } });
+  });
+}

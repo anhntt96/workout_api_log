@@ -1,0 +1,35 @@
+meta {
+  name: Paginate page 2
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?limit=2&cursor={{historyCursor}}
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 2
+  cursor: {{historyCursor}}
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("is ordered newest first", function () {
+    expect(res.getBody().data.map(function (e) { return e.date; })).to.deep.equal(["2026-09-22","2026-09-08"]);
+  });
+
+  test("continues after page 1 without overlap", function () {
+    const seen = JSON.parse(bru.getVar("historyPagedIds"));
+    const ids = res.getBody().data.map(function (e) { return e.id; });
+    ids.forEach(function (id) { expect(seen).to.not.include(id); });
+    expect(res.getBody().page.nextCursor).to.be.a("string");
+    bru.setVar("historyCursor", res.getBody().page.nextCursor);
+    bru.setVar("historyPagedIds", JSON.stringify(seen.concat(ids)));
+  });
+}

@@ -1,0 +1,96 @@
+meta {
+  name: Rejects invalid exercise names
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-08",
+        "exerciseName": "   ",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-08",
+        "exerciseName": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-08",
+        "exerciseName": "Bench\u0007Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-08",
+        "exerciseName": 42,
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "entries[0].exerciseName",
+        "message": "exerciseName must not be empty"
+      },
+      {
+        "field": "entries[1].exerciseName",
+        "message": "exerciseName must be at most 100 characters"
+      },
+      {
+        "field": "entries[2].exerciseName",
+        "message": "exerciseName must not contain control characters"
+      },
+      {
+        "field": "entries[3].exerciseName",
+        "message": "exerciseName must be a string"
+      }
+    ]);
+  });
+}
+
+docs {
+  Blank, longer than 100 characters, containing a control character (BEL), and a number.
+}

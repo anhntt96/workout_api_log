@@ -1,0 +1,32 @@
+meta {
+  name: Filter by an inclusive date range
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?from=2026-09-22&to=2026-10-06
+  body: none
+  auth: none
+}
+
+params:query {
+  from: 2026-09-22
+  to: 2026-10-06
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("is ordered newest first", function () {
+    expect(res.getBody().data.map(function (e) { return e.date; })).to.deep.equal(["2026-10-06","2026-10-06","2026-09-22"]);
+  });
+
+  test("includes both boundary days", function () {
+    const seeded = JSON.parse(bru.getVar("historyIds"));
+    const expected = [2, 3, 4].map(function (i) { return seeded[i]; }).sort();
+    expect(res.getBody().data.map(function (e) { return e.id; }).sort()).to.deep.equal(expected);
+  });
+}

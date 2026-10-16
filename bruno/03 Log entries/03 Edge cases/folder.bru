@@ -1,0 +1,34 @@
+meta {
+  name: 03 Edge cases
+  seq: 3
+}
+
+docs {
+  # POST /users/{userId}/workout-entries
+
+  Logs one or more exercise entries for a client. A bulk request is **all-or-nothing**: every entry is
+  validated first, all problems are reported together, and nothing is stored if any entry is invalid.
+
+  ## Request
+
+  | Part | Field | Rules |
+  |------|-------|-------|
+  | path | `userId` | UUID (any case) |
+  | header | `Idempotency-Key` | optional, 1–200 visible ASCII characters, no spaces |
+  | body | `entries` | array, 1–50 items; unknown keys are rejected everywhere |
+  | | `entries[i].date` | `YYYY-MM-DD`, or an ISO datetime **with an offset** (`Z` or `±HH:MM`), read as the day in that offset; at most one day after today's UTC date |
+  | | `entries[i].exerciseName` | catalog name, trimmed + case-insensitive, 1–100 chars, no control characters |
+  | | `entries[i].sets` | array, 1–50 items |
+  | | `sets[j].reps` | integer 1–1000 |
+  | | `sets[j].weight` | number 0–5000, stored with up to 3 decimals (half-up) |
+  | | `sets[j].unit` | `kg` or `lb`, case-insensitive |
+
+  ## Responses
+
+  - `201` `{ data: Entry[] }` in request order. `Entry = { id, userId, date, exerciseName, sets: [{ reps, weight, unit }], createdAt }`;
+    sets come back in the unit they were logged in.
+  - `201` with header `Idempotent-Replayed: true` when the `Idempotency-Key` was already used by this user: the
+    stored entries are returned and nothing new is written. The body of the retry is not compared.
+  - `400 VALIDATION_ERROR` with `errors[].field` paths such as `entries[2].sets[0].weight`.
+  - `400 BAD_REQUEST` for malformed JSON; `413 PAYLOAD_TOO_LARGE` above 1 MB.
+}

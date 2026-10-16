@@ -1,0 +1,40 @@
+meta {
+  name: 02 Edge cases
+  seq: 2
+}
+
+docs {
+  # GET /users/{userId}/personal-records
+
+  A client's personal records for one exercise, all-time or within an inclusive date range.
+
+  | Query | Rules |
+  |-------|-------|
+  | `exerciseName` | **required**, catalog name (trimmed, case-insensitive) |
+  | `unit` | `kg` (default) or `lb` |
+  | `from`, `to` | optional inclusive `YYYY-MM-DD` bounds; `from <= to` |
+
+  Metrics, each taken from the single best set (they may come from different sets):
+
+  - `maxWeight` – heaviest set weight
+  - `maxVolume` – highest `reps × weight` in one set
+  - `bestE1rm` – highest Epley estimate `weight × (1 + reps / 30)`
+
+  Each record is `{ value, weight, reps, date, entryId }` or `null` without data. `date` is the day the record
+  was **first** reached. Values are rounded to 2 decimals; a weight shown in the unit it was logged in is exact.
+
+  ```json
+  {
+    "data": {
+      "exerciseName": "Bench Press", "unit": "kg", "from": null, "to": null,
+      "records": {
+        "maxWeight": { "value": 112.5, "weight": 112.5, "reps": 3, "date": "2026-10-06", "entryId": "…" },
+        "maxVolume": { "value": 760, "weight": 95, "reps": 8, "date": "2026-10-06", "entryId": "…" },
+        "bestE1rm": { "value": 123.75, "weight": 112.5, "reps": 3, "date": "2026-10-06", "entryId": "…" }
+      }
+    }
+  }
+  ```
+
+  `message` is added when every record is `null`.
+}

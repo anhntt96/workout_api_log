@@ -1,0 +1,23 @@
+meta {
+  name: POST to the read-only catalog
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/exercises
+  body: none
+  auth: none
+}
+
+tests {
+  test("responds 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("is NOT_FOUND in the standard error format", function () {
+    expect(res.getBody().code).to.equal("NOT_FOUND");
+    expect(res.getBody().message).to.equal("Cannot POST /exercises");
+    expect(res.getBody().requestId).to.be.a("string");
+  });
+}

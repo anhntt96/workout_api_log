@@ -1,0 +1,45 @@
+meta {
+  name: Rejects missing date ranges
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records/comparison?exerciseName=Bench%20Press
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Bench%20Press
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("is a VALIDATION_ERROR naming the offending fields", function () {
+    const body = res.getBody();
+    expect(body.code).to.equal("VALIDATION_ERROR");
+    expect(body.message).to.equal("Request validation failed");
+    expect(body.errors).to.deep.equal([
+      {
+        "field": "from",
+        "message": "from is required"
+      },
+      {
+        "field": "to",
+        "message": "to is required"
+      },
+      {
+        "field": "baselineFrom",
+        "message": "baselineFrom is required"
+      },
+      {
+        "field": "baselineTo",
+        "message": "baselineTo is required"
+      }
+    ]);
+  });
+}

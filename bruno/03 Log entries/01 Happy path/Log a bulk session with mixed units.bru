@@ -1,0 +1,87 @@
+meta {
+  name: Log a bulk session with mixed units
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-10",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 102.5,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-10",
+        "exerciseName": "Back Squat",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 225,
+            "unit": "lb"
+          },
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-10",
+        "exerciseName": "Pull-Up",
+        "sets": [
+          {
+            "reps": 10,
+            "weight": 0,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("every entry has the documented shape", function () {
+    res.getBody().data.forEach(function (e) {
+      expect(Object.keys(e).sort()).to.deep.equal(["createdAt", "date", "exerciseName", "id", "sets", "userId"]);
+      expect(e.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(e.userId).to.equal(bru.getVar("userId"));
+      expect(e.createdAt).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/);
+    });
+  });
+
+  test("returns entries in request order", function () {
+    expect(res.getBody().data.map(function (e) { return e.exerciseName; }))
+      .to.deep.equal(["Bench Press", "Back Squat", "Pull-Up"]);
+  });
+
+  test("keeps each set in the unit it was logged in", function () {
+    expect(res.getBody().data[1].sets).to.deep.equal([
+      { reps: 5, weight: 225, unit: "lb" },
+      { reps: 5, weight: 100, unit: "kg" }
+    ]);
+  });
+
+  test("accepts a zero (bodyweight) weight", function () {
+    expect(res.getBody().data[2].sets).to.deep.equal([{ reps: 10, weight: 0, unit: "kg" }]);
+  });
+}

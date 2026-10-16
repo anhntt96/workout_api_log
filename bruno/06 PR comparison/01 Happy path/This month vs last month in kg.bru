@@ -1,0 +1,56 @@
+meta {
+  name: This month vs last month in kg
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records/comparison?exerciseName=Bench%20Press&from=2026-10-01&to=2026-10-31&baselineFrom=2026-09-01&baselineTo=2026-09-30
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Bench%20Press
+  from: 2026-10-01
+  to: 2026-10-31
+  baselineFrom: 2026-09-01
+  baselineTo: 2026-09-30
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns both periods and the change", function () {
+    const ids = JSON.parse(bru.getVar("prEntryIds"));
+    const rec = function (value, weight, reps, date, i) {
+      return { value: value, weight: weight, reps: reps, date: date, entryId: ids[i] };
+    };
+    expect(res.getBody().data).to.deep.equal({
+      exerciseName: "Bench Press",
+      unit: "kg",
+      current: { from: "2026-10-01", to: "2026-10-31", records: {
+        maxWeight: rec(112.5, 112.5, 3, "2026-10-06", 2),
+        maxVolume: rec(760, 95, 8, "2026-10-06", 2),
+        bestE1rm: rec(123.75, 112.5, 3, "2026-10-06", 2)
+      } },
+      baseline: { from: "2026-09-01", to: "2026-09-30", records: {
+        maxWeight: rec(110, 110, 1, "2026-09-22", 1),
+        maxVolume: rec(500, 100, 5, "2026-09-08", 0),
+        bestE1rm: rec(116.67, 100, 5, "2026-09-08", 0)
+      } },
+      change: {
+        maxWeight: { absolute: 2.5, percent: 2.27 },
+        maxVolume: { absolute: 260, percent: 52 },
+        bestE1rm: { absolute: 7.08, percent: 6.07 }
+      }
+    });
+    expect(res.getBody()).to.not.have.property("message");
+  });
+}
+
+docs {
+  E1RM change is computed from unrounded values: 123.75 − 116.6667 = 7.0833 → 7.08, and 7.0833 / 116.6667 = 6.07 %.
+}

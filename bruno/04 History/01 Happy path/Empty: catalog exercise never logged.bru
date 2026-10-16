@@ -1,0 +1,28 @@
+meta {
+  name: Empty: catalog exercise never logged
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries?exerciseName=Deadlift
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Deadlift
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns an empty page with a message", function () {
+    const body = res.getBody();
+    expect(body.data).to.deep.equal([]);
+    expect(body.page.nextCursor).to.equal(null);
+    expect(body.message).to.equal("No workout entries match the given filters.");
+  });
+}

@@ -1,0 +1,36 @@
+meta {
+  name: Rejects a body larger than 1 MB
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": []
+  }
+}
+
+script:pre-request {
+  req.setBody({ entries: [], padding: "x".repeat(1100000) });
+}
+
+tests {
+  test("responds 413", function () {
+    expect(res.getStatus()).to.equal(413);
+  });
+
+  test("is PAYLOAD_TOO_LARGE", function () {
+    expect(res.getBody().code).to.equal("PAYLOAD_TOO_LARGE");
+    expect(res.getBody().message).to.equal("request entity too large");
+  });
+}
+
+docs {
+  The body is built by the pre-request script. A full valid request (50 × 50 sets) is about 100 kB.
+}

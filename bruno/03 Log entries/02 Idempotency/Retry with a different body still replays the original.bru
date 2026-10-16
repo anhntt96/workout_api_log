@@ -1,0 +1,62 @@
+meta {
+  name: Retry with a different body still replays the original
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+headers {
+  Idempotency-Key: {{idemKey}}
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-26",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 1,
+            "weight": 200,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-26",
+        "exerciseName": "Deadlift",
+        "sets": [
+          {
+            "reps": 1,
+            "weight": 210,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("sets Idempotent-Replayed: true", function () {
+    expect(res.getHeader("idempotent-replayed")).to.equal("true");
+  });
+
+  test("returns the originally stored entries, not the new body", function () {
+    expect(res.getBody().data).to.deep.equal(JSON.parse(bru.getVar("idemFirstData")));
+  });
+}
+
+docs {
+  The key wins: the body of a retry is not compared (ADR 0003 keeps this deliberately simple).
+}

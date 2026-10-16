@@ -1,0 +1,136 @@
+meta {
+  name: Seed personal records
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "2026-09-08",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          },
+          {
+            "reps": 3,
+            "weight": 105,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-22",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 1,
+            "weight": 110,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-06",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 3,
+            "weight": 112.5,
+            "unit": "kg"
+          },
+          {
+            "reps": 8,
+            "weight": 95,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-12",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 1,
+            "weight": 112.5,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-08",
+        "exerciseName": "Back Squat",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 225,
+            "unit": "lb"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-10",
+        "exerciseName": "Pull-Up",
+        "sets": [
+          {
+            "reps": 10,
+            "weight": 0,
+            "unit": "kg"
+          }
+        ]
+      },
+      {
+        "date": "2026-10-10",
+        "exerciseName": "Pull-Up",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 10,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+script:pre-request {
+  bru.setVar("userId", bru.getVar("newUserId"));
+}
+
+tests {
+  test("responds 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("stores the seven entries and saves their ids", function () {
+    const ids = res.getBody().data.map(function (e) { return e.id; });
+    expect(ids).to.have.length(7);
+    bru.setVar("prEntryIds", JSON.stringify(ids));
+  });
+}
+
+docs {
+  Creates a fresh user and logs the dataset the requests in this folder assert against.
+  Entry ids are saved by position in `prEntryIds`:
+
+  | # | Date | Exercise | Sets |
+  |---|------|----------|------|
+  | 0 | 2026-09-08 | Bench Press | 5 × 100 kg, 3 × 105 kg |
+  | 1 | 2026-09-22 | Bench Press | 1 × 110 kg |
+  | 2 | 2026-10-06 | Bench Press | 3 × 112.5 kg, 8 × 95 kg |
+  | 3 | 2026-10-12 | Bench Press | 1 × 112.5 kg (ties the max weight later) |
+  | 4 | 2026-10-08 | Back Squat | 5 × 225 lb |
+  | 5 | 2026-09-10 | Pull-Up | 10 × 0 kg (bodyweight) |
+  | 6 | 2026-10-10 | Pull-Up | 5 × 10 kg |
+}

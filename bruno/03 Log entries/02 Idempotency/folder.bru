@@ -1,0 +1,12 @@
+meta {
+  name: 02 Idempotency
+  seq: 2
+}
+
+docs {
+  # Idempotency-Key (ADR 0003)
+
+  An optional `Idempotency-Key` header (1–200 visible ASCII characters, no spaces) makes a retry safe. Keys
+  are scoped per user. A retry with a used key returns the stored entries with `Idempotent-Replayed: true`
+  and writes nothing; the retry's body is not compared with the original.
+}

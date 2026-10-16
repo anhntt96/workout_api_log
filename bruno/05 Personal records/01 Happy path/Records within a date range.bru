@@ -1,0 +1,35 @@
+meta {
+  name: Records within a date range
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/users/{{userId}}/personal-records?exerciseName=Bench%20Press&from=2026-09-01&to=2026-09-30
+  body: none
+  auth: none
+}
+
+params:query {
+  exerciseName: Bench%20Press
+  from: 2026-09-01
+  to: 2026-09-30
+}
+
+tests {
+  test("responds 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the expected records", function () {
+    const ids = JSON.parse(bru.getVar("prEntryIds"));
+    const rec = function (value, weight, reps, date, i) {
+      return { value: value, weight: weight, reps: reps, date: date, entryId: ids[i] };
+    };
+    expect(res.getBody().data).to.deep.equal({ exerciseName: "Bench Press", unit: "kg", from: "2026-09-01", to: "2026-09-30", records: {
+      maxWeight: rec(110, 110, 1, "2026-09-22", 1),
+      maxVolume: rec(500, 100, 5, "2026-09-08", 0),
+      bestE1rm: rec(116.67, 100, 5, "2026-09-08", 0)
+    } });
+  });
+}

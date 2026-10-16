@@ -1,0 +1,42 @@
+meta {
+  name: Rejects a date two days after the UTC date
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/users/{{userId}}/workout-entries
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "entries": [
+      {
+        "date": "{{twoDaysAheadUtc}}",
+        "exerciseName": "Bench Press",
+        "sets": [
+          {
+            "reps": 5,
+            "weight": 100,
+            "unit": "kg"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+tests {
+  test("responds 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("names the latest allowed day", function () {
+    expect(res.getBody().errors).to.deep.equal([{
+      field: "entries[0].date",
+      message: "date must not be after " + bru.getVar("tomorrowUtc") + " (more than one day in the future)"
+    }]);
+  });
+}

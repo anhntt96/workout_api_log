@@ -1,0 +1,32 @@
+meta {
+  name: 01 Happy path
+  seq: 1
+}
+
+docs {
+  # GET /users/{userId}/workout-entries
+
+  A client's entries, newest first (`date DESC`, then `createdAt DESC`, `id DESC`), with keyset pagination.
+
+  | Query | Rules |
+  |-------|-------|
+  | `exerciseName` | case-insensitive **substring** of the exercise name (`%` and `_` are literal) |
+  | `muscleGroup` | exact muscle group name, case-insensitive; an unknown group is a 400 |
+  | `from`, `to` | inclusive `YYYY-MM-DD` bounds on the entry date; `from <= to` |
+  | `unit` | `kg` or `lb`: convert every set (rounded to 2 decimals; sets already in that unit stay exact). Omitted: sets as logged |
+  | `limit` | 1–100, default 20 |
+  | `cursor` | opaque `page.nextCursor` from the previous page |
+
+  Unknown query parameters are rejected. A repeated parameter is a 400.
+
+  ```json
+  {
+    "data": [{ "id": "…", "userId": "…", "date": "2026-10-06", "exerciseName": "Bench Press",
+               "sets": [{ "reps": 3, "weight": 112.5, "unit": "kg" }], "createdAt": "2026-10-16T09:00:00.123456Z" }],
+    "page": { "limit": 20, "nextCursor": null },
+    "message": "No workout entries match the given filters."
+  }
+  ```
+
+  `message` is present only when `data` is empty.
+}
