@@ -153,3 +153,111 @@ Auto-generated journal of AI-assisted sessions on this project (one entry per Cl
 
 <sub>session `3e79085d-aac2-45bb-95af-774000383a5a` · ended: clear</sub>
 
+## 2026-10-15 15:54 — Convert assignment PDF to Markdown and update repo docs
+
+**AI tools used:** Claude Code (claude-sonnet-5-5) — documentation
+
+**What was done:**
+- Converted `Everfit_Test for Backend Engineer.pdf` to `Everfit_Test for Backend Engineer.md`. The text came from macOS PDFKit via a Swift script. The criteria became a table, and code-style terms went in backticks.
+- Added the `.md` brief to `.gitignore` next to the PDF entry.
+- Updated the "Project state" section of `CLAUDE.md` to point to the `.md` brief as the one to read.
+- Switched from `docs/adr-0004-predefined-exercises` to `main`, rebased onto `origin/main` (4 commits behind), and pushed two commits: `0bdbfe7` (CLAUDE.md and `.gitignore`) and `6d870cb` (pending `AI_WORKFLOW.md` journal entries).
+
+**AI output that was wrong or suboptimal, and how it was corrected:**
+- The first extraction attempts failed: `pdftotext` and `pypdf` were not installed. The AI switched to PDFKit through Swift, which worked.
+- The PDF extraction produced `AI _ WORKFLOW` spacing, which the AI fixed by hand in the Markdown.
+- The AI did not check the conversion visually against the PDF layout and said so. It also did not run `git status` after the `.gitignore` edit to confirm the file was ignored.
+- The AI committed the modified `AI_WORKFLOW.md` along with the requested files, though the user had not asked for it. It flagged that the hook-generated entries should be checked for accuracy.
+
+**AI suggestions rejected (and why):**
+- _None this session._
+
+**Prompting strategy:**
+- Short, single-step instructions given one after another: convert, gitignore, update CLAUDE.md, commit and push.
+- The user gave no extra context. They relied on the AI to find the extraction route and the repo state, and on `CLAUDE.md` for project background.
+- The AI proposed the `.gitignore` change in its summary, and the user then asked for it as the next step.
+
+<sub>session `11d7d007-a5c7-4b31-9370-b61abe93ef28` · ended: clear</sub>
+
+---
+
+## 2026-10-15 15:57 — Checking for further ADRs beyond 0001–0003 (brainstorming spike)
+
+**AI tools used:** Claude Code (claude-sonnet-5-5) — architecture / documentation (planning which ADRs to write)
+
+**What was done:**
+- The user ran `/superpowers:brainstorming` and asked whether any ADRs were needed beyond those in `docs/adr/`, keeping in mind that this is a home assignment and should stay simple.
+- The AI treated this as a spike-style question and wrote no code or ADR files. It read the assignment brief, listed the repo files and branches, and checked the git log.
+- It reported that no ADRs exist beyond 0001 (PostgreSQL), 0002 (dates and timezones) and 0003 (concurrency and idempotency). It noted that 0004 (exercise catalog) is described in `CLAUDE.md` but is not in `docs/adr/` on `main`.
+- It recommended at most two more ADRs. One covers the API shape (pagination and error format). The other covers PR computation and query strategy for large datasets.
+- It suggested skipping ADRs for NestJS, Docker Compose, logging, test strategy, the unit registry and muscle-group mapping, because the README or existing ADRs cover them. It then asked the user whether to draft ADR 0005 (API shape) first.
+
+**AI output that was wrong or suboptimal, and how it was corrected:**
+- The AI's statement about ADR 0004 contradicted itself. It said 0004 "exists only on the `docs/adr-0004-predefined-exercises` branch" and also that it "is merged to `main` in the log". A later `ls docs/adr` showed only 0001–0003 on `main`, so the file is not on `main`. The session ended before this was clarified or corrected.
+
+**AI suggestions rejected (and why):**
+- _None this session._ The session ended with `/clear` before the user answered the proposal to draft ADR 0005.
+
+**Prompting strategy:**
+- The user gave a short, open-ended question with one constraint ("keep it simple, it's a home assignment") and used the brainstorming skill to explore before any writing.
+- `CLAUDE.md` supplied the context on the existing ADRs and the project goals, so the user did not have to restate them.
+- The AI ended with a recommendation and a confirmation question rather than acting. No iteration happened before the session ended.
+
+<sub>session `50b7c649-ef49-4065-9c90-d8c17df5cece` · ended: clear</sub>
+
+---
+
+## 2026-10-15 20:17 — Brief session: effort setting and mistyped exit command
+
+**AI tools used:** Claude Code (claude-opus-5-5) — documentation (no substantive work; session was only configuration and an exit attempt)
+
+**What was done:**
+- Set the Claude Code effort level to medium, saved as the default for new sessions.
+- Typed `/ẽit` while trying to exit. The assistant told the user to switch to English input and type `/exit`.
+- No code, ADRs, or other project files were changed.
+
+**AI output that was wrong or suboptimal, and how it was corrected:**
+- _None this session._
+
+**AI suggestions rejected (and why):**
+- _None this session._
+
+**Prompting strategy:**
+- No real prompting took place. The user ran `/effort` and then typed a mistyped `/exit`. The project's CLAUDE.md and the SessionStart hook were loaded automatically, but no task was given.
+
+<sub>session `e58359dd-d440-4a6d-b434-66577f23d304` · ended: prompt_input_exit</sub>
+
+## 2026-10-16 11:42 — Workout Logging API: implementation plan and subagent-driven build of all 15 tasks
+
+**AI tools used:** Claude Code (claude-opus-5-5, xhigh effort) as controller, with subagents on Haiku, Sonnet and Opus for implementation and review — architecture / coding / testing / debugging / documentation
+
+**What was done:**
+- Used the `superpowers:writing-plans` skill to write a 15-task implementation plan for the Everfit assignment. Before writing it, the AI ran spikes on NestJS 12, Vitest, Zod, Postgres query plans and body-size limits. It then assembled the plan's code in a scratch project and ran typecheck, lint, build, unit tests, e2e tests and the Docker stack.
+- Opened and merged PR #5 to land ADR 0004 on `main`, because the earlier PR #4 had been merged into the ADR 0003 branch.
+- Ran the plan with `superpowers:subagent-driven-development` on `feat/workout-logging-api`. Each task had an implementer subagent, a reviewer subagent, and scoped re-reviews after fixes. Tasks 1–15 were pushed to `main` as each one passed review.
+- Ran a final whole-branch review on Opus, followed by one fix wave: a Prettier pass, README gaps, three wrong code comments and small safety settings. The AI then re-ran every gate itself on `aef447b`: typecheck, lint and format were clean, with 94/94 unit and 101/101 e2e tests passing.
+
+**AI output that was wrong or suboptimal, and how it was corrected:**
+- Task 2: `epleyOneRepMax` divided `reps / 30` first, so exact rounding midpoints rounded down. It was rewritten as `weight × (reps + 30) / 30`.
+- Task 4: the error filter rendered 4xx errors without `expose: true` as 500s. It now classifies by status. The implementer found that Nest already turns a malformed URL into a 400, so the fix is pinned by a raw-422 test.
+- Task 5: the health check dropped the database error and its 503 path was untested. It now keeps the error as `cause` and has a 503 test.
+- Task 9: year-0000 dates in `from`/`to` or in a cursor returned 500. They now return 400.
+- Task 10: personal records rounded weights even when shown in the logged unit. Same-unit weights are now exact.
+- Task 12: the performance test could not fail, because it still passed with an index dropped. It now asserts which index each query uses and how many rows it reads. The implementer confirmed that dropping an index makes it fail.
+- Task 13: a first-run race let the API start while Postgres was only listening on its socket. Compose now probes over TCP and uses `restart: on-failure`.
+- Task 14: the demo's invalid-userId call could not show its error, and the README had a wrong partitioning claim and a `USER=` variable clash. The AI's own wording of the partitioning fix needed three fix rounds before it was accurate.
+- Task 15: the ADR 0001 Summary still had four stale lines, including the history index without `created_at`. All four were corrected.
+- Process and tooling errors: a zsh word-splitting failure in a spike script was retried with a shell function. The first Task 12 reviewer died with an API ECONNRESET and was re-dispatched. A leftover scratch container, `reviewer-pg18-task12`, was identified as the session's own and removed.
+
+**AI suggestions rejected (and why):**
+- The user redirected the delivery flow mid-run with "commit and push to master for each task". The AI had planned to defer Task 15 to a separate branch and PR, as CLAUDE.md's one-PR-per-ADR rule says. It dropped that and pushed every task, including Task 15, straight to `main`, and flagged the CLAUDE.md conflict in its rulings list.
+- The user did not decline any tool call.
+
+**Prompting strategy:**
+- The first prompt was a single skill command (`/superpowers:writing-plans`) pointing at the assignment brief and the ADR folder with `@` references. Beforehand, the user set the model to Opus 5.5 and effort to xhigh.
+- The user then gave short directives only: "use subagent-driven." after the AI recommended that approach, and one mid-run workflow correction about pushing to main per task.
+- The AI broke the work into a plan with 15 tasks. It ran each task as an implement → review → fix → scoped re-review loop, kept a ledger and shared constraint files in a workspace folder, and ruled on each reviewer finding itself. At the end it reported its rulings and left `AI_WORKFLOW.md` to the user, per CLAUDE.md.
+- The session ended with the finish-branch options (merge, PR, or keep) still unanswered.
+
+<sub>session `1b60bdac-9821-4d9a-a01f-686627483cf2` · ended: clear</sub>
+
