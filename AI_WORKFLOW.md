@@ -261,3 +261,27 @@ Auto-generated journal of AI-assisted sessions on this project (one entry per Cl
 
 <sub>session `1b60bdac-9821-4d9a-a01f-686627483cf2` · ended: clear</sub>
 
+## 2026-10-16 12:46 — Deciding next steps for the Everfit take-home when requirements are open-ended
+
+**AI tools used:** Claude Code (claude-opus-5-5) — architecture / planning
+
+**What was done:**
+- The user asked in Vietnamese what to do next. The company gave a home assignment with no requirements-clarification step, so any design (MongoDB or PostgreSQL) could solve it.
+- Claude listed the repo and `docs/adr`, then grepped the brief (`Everfit_Test for Backend Engineer.md`) for requirement, deliverable and submission keywords.
+- Claude read specific line ranges of the brief and checked for `src`, `README.md`, `docker-compose.yml` and a `Dockerfile`.
+- Claude wrote a plan file, "Next steps for the Everfit take-home", and submitted it with ExitPlanMode. The plan argued that the open choices are deliberate and that the task is to document and justify decisions.
+
+**AI output that was wrong or suboptimal, and how it was corrected:**
+- _None this session._ The plan was interrupted before the user reviewed it, so nothing was shown to be wrong.
+
+**AI suggestions rejected (and why):**
+- The user interrupted the ExitPlanMode call ("Request interrupted by user for tool use"), so the plan was not approved. No reason was given.
+- The user then typed `/ẽit`, which looks like a typo of an edit command. No follow-up came in this session, so the intended change is unknown.
+
+**Prompting strategy:**
+- The user gave a short, open-ended question in Vietnamese. It described their situation and confusion and did not specify a task.
+- Claude relied on the repo's CLAUDE.md and the existing ADRs for context and went straight to plan mode.
+- The user's interrupt and `/edit`-style command suggest they wanted to steer or revise the plan, but the session ended before that happened.
+
+<sub>session `385ff4c5-4754-414f-bd8d-61f64d2f5809` · ended: prompt_input_exit</sub>
+
