@@ -9,6 +9,7 @@ import { Select } from '../../components/ui/Field';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useActiveSession } from '../../session/session';
 import { LoadSampleDataButton } from '../sample-data/LoadSampleDataButton';
+import { ComparisonPanel } from './ComparisonPanel';
 import { RECORD_METRICS } from './metrics';
 import { RecordCard } from './RecordCard';
 
@@ -56,20 +57,23 @@ export function RecordsPage() {
         </Alert>
       )}
       {!records.isError && (
-        <div className="grid gap-4 md:grid-cols-3">
-          {RECORD_METRICS.map((metric) =>
-            records.data ? (
-              <RecordCard
-                key={metric.key}
-                metric={metric}
-                record={records.data.data.records[metric.key]}
-                unit={unit}
-              />
-            ) : (
-              <Skeleton key={metric.key} className="h-52 rounded-2xl" />
-            ),
-          )}
-        </div>
+        <>
+          <div className="grid gap-4 md:grid-cols-3">
+            {RECORD_METRICS.map((metric) =>
+              records.data ? (
+                <RecordCard
+                  key={metric.key}
+                  metric={metric}
+                  record={records.data.data.records[metric.key]}
+                  unit={unit}
+                />
+              ) : (
+                <Skeleton key={metric.key} className="h-52 rounded-2xl" />
+              ),
+            )}
+          </div>
+          {exerciseName !== '' && <ComparisonPanel exerciseName={exerciseName} />}
+        </>
       )}
     </>
   );
