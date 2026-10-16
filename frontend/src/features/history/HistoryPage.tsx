@@ -11,6 +11,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { formatDayHeading, todayIsoDay } from '../../lib/dates';
 import { useActiveSession } from '../../session/session';
+import { LoadSampleDataButton } from '../sample-data/LoadSampleDataButton';
 import { EntryCard } from './EntryCard';
 import {
   type HistoryFilters,
@@ -110,12 +111,13 @@ export function HistoryPage() {
       <EmptyState
         icon={Dumbbell}
         title="No workouts yet"
-        description="Log this client's first session to see it here."
+        description="Log this client's first session, or load eight weeks of sample data to explore the app."
       >
         <Link to="/log" className={buttonClass('primary')}>
           <Plus aria-hidden="true" className="size-4" />
           Log workout
         </Link>
+        <LoadSampleDataButton />
       </EmptyState>
     );
   } else {
