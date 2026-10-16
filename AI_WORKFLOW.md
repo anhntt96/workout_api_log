@@ -285,3 +285,63 @@ Auto-generated journal of AI-assisted sessions on this project (one entry per Cl
 
 <sub>session `385ff4c5-4754-414f-bd8d-61f64d2f5809` · ended: prompt_input_exit</sub>
 
+## 2026-10-16 13:41 — Plan, build and ship a React frontend for the workout API
+
+**AI tools used:** Claude Code (claude-opus-5-5) — architecture / coding / testing / debugging / documentation
+
+**What was done:**
+- Brainstormed a React frontend (welcome, history, personal records screens) by reading the backend and asking scoping questions. The user then moved straight to `/superpowers:writing-plans`, and the AI wrote an 11-task plan to `docs/superpowers/plans/2026-10-16-frontend-app.md`.
+- Built a full reference app in a scratch directory first, then replayed the plan task by task in a fresh copy. It also ran the app against the real Docker stack and took headless screenshots at laptop and phone widths.
+- Executed the plan natively on `feat/frontend` with TDD, running each RED/GREEN step and committing per task. It added Vite/React 19/Tailwind 4 pages, an nginx Docker service, and README/CLAUDE.md updates.
+- Ran a fresh-context whole-branch review and fixed its findings, each with a failing check first. Fixes covered the README, `crypto.randomUUID` on plain http plus an error boundary, retry on all API errors, sample-data feedback, index.html caching and the test clock.
+- Merged `feat/frontend` into `main` and pushed. The merge was verified first with frontend (112) and backend (94) tests, type-check, lint and build.
+
+**AI output that was wrong or suboptimal, and how it was corrected:**
+- Node 26's built-in `localStorage` hid jsdom's during spike tests. The test config now turns Node's off.
+- A plan helper script truncated the README edit and removed the `## Architecture` heading and command table. The reviewer flagged it, the AI confirmed it and restored it with a check.
+- nginx kept failing after an API restart, and the "API down" demo check failed. It changed to re-resolve the upstream and capped the connect timeout at 3 s.
+- Clearing filters from the "no results" screen left stale text in the search box. A test now covers it.
+- Tests at a frozen noon clock could not catch UTC-versus-local date bugs. The AI planted the bug, confirmed all tests still passed, then moved the frozen time to 00:30 local.
+- Some test assertions were wrong (`toHaveValue` with an asymmetric matcher, a cell assertion that ignored the date line) and were corrected.
+
+**AI suggestions rejected (and why):**
+- The user skipped the visual-companion offer and the rest of brainstorming (visual direction, written spec) by invoking `/superpowers:writing-plans`. The AI made the design decisions inside the plan for review.
+- The AI offered a menu to merge locally, open a PR or keep the branch. The user asked instead to merge everything to `main` and push.
+
+**Prompting strategy:**
+- The user gave a short feature brief (three screens, local-storage UUID, Tailwind UI) and relied on the superpowers skills (brainstorming → writing-plans → executing-plans → finishing-a-development-branch) to structure the work.
+- The user steered with brief decisions: "write a plan", "yes, use Native", "merge all changes to main branch and push to repo".
+- `CLAUDE.md` supplied the project conventions, and the AI updated it for the new frontend.
+
+<sub>session `9efd7ce2-b207-4cc2-b651-3efb9daf7a35` · ended: clear</sub>## 2026-10-16 20:06 — Production deployment on a VPS behind a Cloudflare Tunnel
+
+**AI tools used:** Claude Code (claude-opus-5-5) — architecture, coding, testing, debugging, documentation
+
+**What was done:**
+- Explored the repo and the `albertnguyen.dev` DNS setup, then wrote a deployment design. This became an implementation plan (`docs/superpowers/plans/2026-10-16-production-deployment.md`), executed task by task with the user's chosen "Native" mode.
+- Opened PR #6 with ADR 0005 and PR #7 (draft) with the rest. PR #7 covers nginx rate limits, security headers and JSON 429/503 errors, plus `deploy/compose.yaml`, `deploy.sh` (rolls back on failure), `smoke-test.sh`, R2 backup/restore scripts, `cloud-init.yaml`, `ci.yml` and `deploy.yml`.
+- Tested each piece. The smoke test and the deploy rehearsal were each run to fail first, then pass. A headless-Chrome CSP check, shellcheck, actionlint and a cloud-init schema validation also ran. CI passed on GitHub.
+- A whole-branch review found three Important issues, which were fixed. A rollback tag could inject commands. An automatic rollback kept the new Compose file. A hung SSH session could block deploys. The fixes added `ci-deploy.sh`, `test-ci-deploy.sh`, a rollback Compose-file swap and a deploy timeout.
+- Updated the runbook (`docs/deployment.md`), README and CLAUDE.md. The remaining go-live steps need the user's own accounts and were left for them.
+
+**AI output that was wrong or suboptimal, and how it was corrected:**
+- The plan session was interrupted, and the first prompt had "cloudfront" where the user meant Cloudflare. The user re-ran it with the typo fixed.
+- The `task-done` bookkeeping script exited silently on the first run. Debugging with `bash -x` showed it needs the test command to print output, so it was rerun with an output line.
+- The assistant used the wrong code-block index when extracting `ci.yml` from the task brief. It listed the brief's blocks and picked the right one.
+- The Chrome extension tools were not available, so the browser CSP check used a Node script driving headless Chrome. It did not click Save on the Log workout form.
+- The first review agent was cut off by a session rate limit. It was resumed with SendMessage and finished.
+- The review found real flaws in the AI's own work (command injection through the rollback tag, the Compose file not rolling back, and no timeouts). Each was fixed test-first, and the injection was reproduced against the old logic.
+- Shellcheck flagged SC2029 in `ci-deploy.sh`. The assistant marked the client-side expansion as intentional.
+
+**AI suggestions rejected (and why):**
+- The user interrupted the first `ExitPlanMode` call, which cancelled that plan. They re-invoked planning with the `superpowers:writing-plans` skill. No reason was stated.
+- The user interrupted the execution-mode question and answered "Native" instead of using subagent-driven execution.
+- The AI recommended keeping PR #7 as a draft (option 3), because merging starts the first deploy. The user had not replied when the transcript ended.
+
+**Prompting strategy:**
+- The user gave a short, open goal ("deploy this for production readiness… what should I do?") with the domain, and left the architecture to the AI.
+- The AI asked a hosting question, and the user steered the work through the writing-plans and executing-plans skills.
+- CLAUDE.md, ADRs and the earlier plan files supplied the project context. The AI followed the ADR and PR-per-ADR workflow and updated CLAUDE.md when it finished.
+- Work ran test-first with a plan ledger, and a separate Opus reviewer examined the whole branch before wrap-up.
+
+<sub>session `95d3d6f8-0b6c-4656-845f-df3d269d703b` · ended: clear</sub>
