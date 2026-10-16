@@ -5315,6 +5315,9 @@ server {
     set $api_upstream http://api:3000;
     rewrite ^/api/(.*)$ /$1 break;
     proxy_pass $api_upstream;
+    # Right after the API container stops, its cached address stops answering and connect() would wait
+    # about 15 s for "host unreachable". On the same Docker network a live API connects in under 1 ms.
+    proxy_connect_timeout 3s;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
   }
@@ -5565,7 +5568,7 @@ Run `docker compose up --build --wait`, open http://localhost:8080 at a laptop w
 6. **Log workout:** press Save workout with nothing filled in. An alert lists `entries[0].exerciseName`, `entries[0].sets[0].reps` and `entries[0].sets[0].weight` with a request id, and the same messages appear under the fields. Choose Bench Press, enter 5 reps × 100 kg and save. History shows "Saved 1 exercise." and the entry under Today.
 7. **Idempotency:** open Personal records → Bicep Curl, which has no records, so the banner offers Load sample data. Press it. History still shows each session once: the button always sends `Idempotency-Key: sample-data-<client id>`, so the API replays the first load. The browser's network tab shows `Idempotent-Replayed: true` on that response.
 8. Narrow the window to about 390 px, or use the device toolbar: the bottom tab bar appears and nothing scrolls sideways.
-9. Run `docker compose stop api`, then change a filter on History. After a few seconds (the app retries a server error twice), History shows "The API responded with 502 Bad Gateway" and Try again. Run `docker compose start api`, wait for it to become healthy, and press Try again: the data comes back.
+9. Run `docker compose stop api`, then change a filter on History. After the app's two retries, History shows "The API responded with 502 Bad Gateway" and Try again. Within about 10 s of the stop, nginx may still try the old address, so the message can read "504 Gateway Time-out" instead and take about 12 s to appear. Run `docker compose start api`, wait for it to become healthy, and press Try again: the data comes back.
 
 Then run `docker compose down`.
 
