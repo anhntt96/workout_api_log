@@ -51,7 +51,7 @@ erDiagram
 
     muscle_groups {
         uuid id PK
-        text name UK
+        citext name UK
     }
 
     exercise_muscle_groups {
@@ -65,12 +65,13 @@ Key indexes:
 - `workout_entries (user_id, exercise_id, performed_on)`: PR range comparisons and history filtered by exercise
 - `workout_entries (user_id, exercise_id, best_weight_kg DESC, performed_on)`, and the same for `best_volume_kg` and `best_e1rm_kg`: PR lookups; the trailing `performed_on` dates a tied record by the first time it was reached
 - `workout_sets PRIMARY KEY (entry_id, set_index)`: loading an entry's sets; sets are never addressed on their own, so there is no surrogate id
+- `exercise_muscle_groups (muscle_group_id)`: resolving the muscle-group filter to exercise ids
 - `exercises USING gin ((name::text) gin_trgm_ops)`: partial name match; `citext` has no trigram operator class, so the index is on the text cast
 
 **How it meets the 50k+ entries per user requirement:**
 - PR lookups and range comparisons read the per-entry summaries, not every set. That is about 5× fewer rows and smaller indexes.
-- History uses cursor (keyset) pagination on `(user_id, performed_on DESC, id DESC)`.
-- Exercise-name and muscle-group filters are first resolved to exercise ids using the small `exercises` table, then applied to an indexed scan of the user's entries.
+- History uses cursor (keyset) pagination on `(user_id, performed_on DESC, created_at DESC, id DESC)`.
+- Exercise-name and muscle-group filters are first resolved to exercise ids using the small `exercises` table and the `exercise_muscle_groups` mapping, then applied to an indexed scan of the user's entries.
 
 **Integrity and concurrency:**
 - `CHECK` constraints and foreign keys enforce data rules in the database.
