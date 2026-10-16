@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: workout
       POSTGRES_DB: workout
     ports:
-      - '${DB_PORT:-5433}:5432'
+      - '127.0.0.1:${DB_PORT:-5433}:5432'
     volumes:
       # Postgres 18 images keep data under /var/lib/postgresql/18/docker; mount the parent.
       - db-data:/var/lib/postgresql

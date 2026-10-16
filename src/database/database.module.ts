@@ -16,7 +16,12 @@ export const PG_POOL = Symbol('PG_POOL');
       provide: PG_POOL,
       inject: [APP_CONFIG],
       useFactory: (config: AppConfig): Pool => {
-        const pool = new Pool({ connectionString: config.databaseUrl, max: config.dbPoolMax });
+        const pool = new Pool({
+          connectionString: config.databaseUrl,
+          max: config.dbPoolMax,
+          // A saturated pool or an unreachable database fails fast instead of hanging the request.
+          connectionTimeoutMillis: 5000,
+        });
         // An idle client can lose its connection; log it instead of crashing the process.
         pool.on('error', (error) => new Logger('Database').error(error));
         return pool;
