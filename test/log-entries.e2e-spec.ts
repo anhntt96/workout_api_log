@@ -212,6 +212,15 @@ describe('POST /users/:userId/workout-entries', () => {
     expect(entriesOf(res)).toHaveLength(50);
   });
 
+  it('rejects a body that is not sent as JSON', async () => {
+    const res = await request(t.app.getHttpServer())
+      .post(`/users/${USER_A}/workout-entries`)
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('{"entries":[]}');
+    expect(res.status).toBe(400);
+    expect(res.body.errors).toEqual([{ field: 'body', message: 'Request body must be a JSON object' }]);
+  });
+
   it('rejects a user id that is not a UUID', async () => {
     const res = await logEntries(t.app, 'coach-42', [entry('2026-10-14', 'Deadlift')]);
     expect(res.status).toBe(400);

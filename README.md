@@ -149,6 +149,7 @@ Idempotency-Key: session-2026-10-14-a
 
 Rules:
 
+- Send the body as JSON (`Content-Type: application/json`); any other body is rejected with `Request body must be a JSON object`.
 - `entries`: 1–50 items. `sets`: 1–50 per entry. `reps`: an integer, 1–1000. `weight`: 0–5000 (0 for bodyweight). `unit`: `kg` or `lb`, case-insensitive.
 - `exerciseName` must name a catalog exercise (`GET /exercises`). Matching trims whitespace and ignores case, and responses use the canonical name ([ADR 0004](docs/adr/0004-predefined-exercise-catalog.md)). Names containing control characters are rejected.
 - `date` is `YYYY-MM-DD` or an ISO 8601 datetime with an offset. The day is read in the offset you send, so send your local offset rather than `toISOString()` output. A datetime without an offset is rejected, and so is any day later than tomorrow in UTC ([ADR 0002](docs/adr/0002-workout-date-and-timezone.md)).

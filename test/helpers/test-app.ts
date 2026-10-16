@@ -29,7 +29,7 @@ export async function createTestApp(): Promise<TestApp> {
     .overrideProvider(CLOCK)
     .useValue(clock)
     .compile();
-  const app = moduleRef.createNestApplication<NestExpressApplication>();
+  const app = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
   configureApp(app);
   // Listen once on an ephemeral port; supertest then reuses the address instead of
   // calling listen() on the shared server for every parallel request.
