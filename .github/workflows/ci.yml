@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+      # Testcontainers starts Postgres 18 on the runner's Docker.
+      - run: npm run test:e2e
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+
+  stack:
+    name: Docker stack and deploy rehearsal
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install rclone for the backup scripts
+        run: sudo apt-get update -q && sudo apt-get install -yq rclone
+      - name: Start the local stack
+        run: docker compose up --build --wait
+      - name: Smoke test through nginx
+        run: scripts/smoke-test.sh http://localhost:8080 --rate-limit
+      - name: nginx answers in the API error format while the API is down
+        run: |
+          docker compose stop api
+          status=$(curl -sS -o body.json -w '%{http_code}' http://localhost:8080/api/exercises)
+          echo "HTTP $status: $(cat body.json)"
+          test "$status" = 503
+          jq -e '.code == "SERVICE_UNAVAILABLE"' body.json
+      - name: Rehearse deploy.sh with the production Compose file
+        run: deploy/test-deploy.sh
+      - name: Show the local stack's logs
+        if: failure()
+        run: docker compose logs
