@@ -377,7 +377,7 @@ time curl -s "localhost:3000/users/7d3f1a2b-4c5d-4e6f-8a9b-0c1d2e3f4a5b/personal
 - **Stateless replicas behind a load balancer**, with **PgBouncer** in transaction mode. Ten replicas × `DB_POOL_MAX` would exceed Postgres' connection limit otherwise.
 - **Read replicas** for history and PR reads. Writes stay on the primary, and a read-your-writes path is needed right after logging.
 - **Run migrations as a deploy step**, not at startup.
-- **Hash-partition** `workout_entries` by `user_id` once it reaches hundreds of millions of rows. This needs the primary key (and the sets foreign key) to become `(user_id, id)` and `user_id` to be added to `workout_sets`, so that sets partition alongside their entries. Every query already filters by `user_id`, so partition pruning then applies.
+- **Hash-partition** `workout_entries` and `workout_sets` by `user_id` once they reach hundreds of millions of rows. Postgres needs the partition key in every primary and unique key, so `user_id` is added to `workout_sets`, the keys become `(user_id, id)` for entries and `(user_id, entry_id, set_index)` for sets, and the sets foreign key becomes `(user_id, entry_id)`. Entry queries already filter by `user_id`, so they prune immediately; the set lookups join on `entry_id` and need a `user_id` predicate added to prune too.
 - **Cache `GET /exercises`** with `Cache-Control` and an ETag (it only changes with a deploy), and keep the catalog in memory.
 - **Authentication and authorization**: take the coach identity from a token and check coach → client access, instead of trusting `userId` in the path. Add per-coach rate limiting.
 - **An idempotency key table** with a payload hash (409 on mismatch) and an expiry job (ADR 0003 "Revisit If").
