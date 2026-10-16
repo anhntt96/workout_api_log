@@ -1,0 +1,7 @@
+# deploy/test-deploy.sh only: reach nginx from the host on 127.0.0.1:8081 and leave the tunnel out.
+services:
+  web:
+    ports:
+      - '127.0.0.1:8081:80'
+  cloudflared:
+    profiles: [tunnel]

@@ -10,3 +10,5 @@ frontend
 *.md
 *.pdf
 .env
+deploy
+.github
