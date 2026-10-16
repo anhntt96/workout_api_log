@@ -17,6 +17,10 @@ const QUERY_BUDGET_MS = 50;
 interface PlanNode {
   'Node Type': string;
   'Relation Name'?: string;
+  'Index Name'?: string;
+  'Actual Rows': number;
+  'Actual Loops': number;
+  'Rows Removed by Filter'?: number;
   Plans?: PlanNode[];
 }
 
@@ -52,6 +56,21 @@ function seqScannedTables(node: PlanNode): string[] {
   return [...own, ...(node.Plans ?? []).flatMap((child) => seqScannedTables(child))];
 }
 
+/** Every node of the plan tree, depth first. */
+function planNodes(node: PlanNode): PlanNode[] {
+  return [node, ...(node.Plans ?? []).flatMap((child) => planNodes(child))];
+}
+
+/** Plan nodes that read `workout_entries` rows. */
+function entryScans(plan: PlanNode): PlanNode[] {
+  return planNodes(plan).filter((node) => node['Relation Name'] === 'workout_entries');
+}
+
+/** Rows a scan looked at: returned plus filtered out, over all loops. */
+function rowsExamined(node: PlanNode): number {
+  return (node['Actual Rows'] + (node['Rows Removed by Filter'] ?? 0)) * node['Actual Loops'];
+}
+
 describe('50,000 entries for one user', () => {
   let t: TestApp;
   let deadliftId: string;
@@ -79,15 +98,23 @@ describe('50,000 entries for one user', () => {
     expect(rows[0].count).toBe(50_000);
   });
 
-  it('reads a deep history page through the index', async () => {
-    const after = { performedOn: '2019-01-01', createdAt: '2019-01-01T00:00:00Z', id: 'ffffffff-ffff-4fff-bfff-ffffffffffff' };
+  it.each([
+    { name: 'first', after: undefined },
+    {
+      name: 'deep',
+      after: { performedOn: '2019-01-01', createdAt: '2019-01-01T00:00:00Z', id: 'ffffffff-ffff-4fff-bfff-ffffffffffff' },
+    },
+  ])('reads the $name history page from workout_entries_history_idx without discarding rows', async ({ after }) => {
     const result = await explain(t.pool, buildHistoryQuery({ userId: HEAVY_USER, after, limit: 21 }));
-    expect(seqScannedTables(result.Plan)).not.toContain('workout_entries');
+    const scans = entryScans(result.Plan);
+    expect(scans.map((scan) => scan['Index Name'])).toEqual(['workout_entries_history_idx']);
+    expect(scans[0]['Rows Removed by Filter'] ?? 0).toBe(0);
+    expect(rowsExamined(scans[0])).toBeLessThanOrEqual(21);
     expect(seqScannedTables(result.Plan)).not.toContain('workout_sets');
     expect(result['Execution Time']).toBeLessThan(QUERY_BUDGET_MS);
   });
 
-  it('reads filtered history through the index', async () => {
+  it("reads filtered history from an index, examining a small share of the user's entries", async () => {
     const squats = await t.app.get(ExercisesRepository).findIds({ nameContains: 'squat' });
     const result = await explain(
       t.pool,
@@ -96,19 +123,37 @@ describe('50,000 entries for one user', () => {
     expect(seqScannedTables(result.Plan)).not.toContain('workout_entries');
     expect(seqScannedTables(result.Plan)).not.toContain('workout_sets');
     expect(result['Execution Time']).toBeLessThan(QUERY_BUDGET_MS);
+    const scans = entryScans(result.Plan);
+    expect(scans).toHaveLength(1);
+    expect(rowsExamined(scans[0])).toBeLessThan(1000);
+  });
+
+  it('finds all-time records from the three best_* indexes, examining few rows', async () => {
+    const result = await explain(t.pool, buildPersonalRecordsQuery({ userId: HEAVY_USER, exerciseId: deadliftId }));
+    const scans = entryScans(result.Plan);
+    expect(scans.map((scan) => scan['Index Name'] ?? '').sort((a, b) => a.localeCompare(b))).toEqual([
+      'workout_entries_best_e1rm_idx',
+      'workout_entries_best_volume_idx',
+      'workout_entries_best_weight_idx',
+    ]);
+    for (const scan of scans) expect(rowsExamined(scan)).toBeLessThan(1000);
+    expect(seqScannedTables(result.Plan)).toEqual([]);
+    expect(result['Execution Time']).toBeLessThan(QUERY_BUDGET_MS);
   });
 
   it.each([
-    { name: 'all-time', range: {} },
     { name: 'ten-year', range: { from: '2016-01-01', to: '2026-12-31' } },
     { name: 'one-month', range: { from: '2026-09-01', to: '2026-09-30' } },
-  ])('finds $name records through the indexes', async ({ range }) => {
+  ])('finds $name records examining few rows', async ({ range }) => {
     const result = await explain(
       t.pool,
       buildPersonalRecordsQuery({ userId: HEAVY_USER, exerciseId: deadliftId, ...range }),
     );
     expect(seqScannedTables(result.Plan)).toEqual([]);
     expect(result['Execution Time']).toBeLessThan(QUERY_BUDGET_MS);
+    const scans = entryScans(result.Plan);
+    expect(scans).toHaveLength(3);
+    for (const scan of scans) expect(rowsExamined(scan)).toBeLessThan(1000);
   });
 
   it('pages through history over HTTP without repeats', async () => {
