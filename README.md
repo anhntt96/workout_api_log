@@ -87,14 +87,12 @@ npm run dev        # http://localhost:5173; proxies /api to http://localhost:300
 
 ```mermaid
 flowchart LR
-  client[Coach app / API client] -->|HTTP + JSON| http
+  client[Coach app / API client] -->|HTTP + JSON| controllers
   subgraph app[NestJS API]
     direction TB
-    http[JSON body parser, 1 MB limit<br/>pino-http: JSON logs + X-Request-Id] --> controllers
     controllers[Controllers<br/>Zod validation pipes] --> services[Services<br/>business rules]
     services --> repositories[Repositories<br/>parameterized SQL]
     domain[Domain<br/>unit registry · Epley/volume · dates] -.-> services
-    filter[Global exception filter<br/>one error format] -.-> controllers
   end
   repositories -->|pg pool| db[(PostgreSQL 18)]
 ```
