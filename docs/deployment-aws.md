@@ -48,9 +48,16 @@ curl localhost/api/exercises
 
 Then run `scripts/demo.sh` against `http://<ec2-ip>/api`.
 
+## HTTPS and the domain
+
+`compose.prod.yaml` runs Caddy in front of nginx. Caddy gets and renews a Let's Encrypt certificate for the host in `Caddyfile` (`workout.albertnguyen.dev`), redirects HTTP to HTTPS, and proxies to the `web` container. Change the hostname in `Caddyfile` for another domain.
+
+- DNS: an `A` record for the host pointing at the instance's (Elastic) IP. With the Cloudflare proxy on (orange cloud), set SSL/TLS mode to **Full (strict)**; Caddy's certificate is valid, so strict works. A `521` error means Cloudflare cannot reach port 443 on the instance.
+- Security group: inbound 80 (certificate challenge and redirect) and 443.
+- Certificates live in the `caddy-data` volume, so restarts do not re-issue them.
+
 ## Hardening
 
-- HTTPS: an ALB with an ACM certificate, or Caddy on the instance.
 - An Elastic IP so the address survives restarts.
 - RDS automated backups (on by default) and Multi-AZ if availability matters.
 - Keep the database password in SSM Parameter Store or Secrets Manager instead of `.env`.

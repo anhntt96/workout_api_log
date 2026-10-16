@@ -1,0 +1,4 @@
+# Obtains and renews a Let's Encrypt certificate for this host automatically (needs ports 80 and 443 open).
+workout.albertnguyen.dev {
+	reverse_proxy web:80
+}

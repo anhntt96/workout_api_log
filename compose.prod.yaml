@@ -34,8 +34,7 @@ services:
   web:
     build: ./frontend
     restart: unless-stopped
-    ports:
-      - '80:80'
+    # No published port: Caddy terminates HTTPS and forwards to nginx over the compose network.
     depends_on:
       api:
         condition: service_healthy
@@ -49,3 +48,25 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Keeps the Let's Encrypt account and certificates across restarts (avoids rate limits).
+      - caddy-data:/data
+    depends_on:
+      web:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  caddy-data:
