@@ -163,6 +163,14 @@ describe('POST /users/:userId/workout-entries', () => {
       field: 'entries[0].exerciseName',
       message: 'exerciseName must not contain control characters',
     },
+    {
+      name: 'more than 50 sets',
+      override: { sets: Array.from({ length: 51 }, () => set(5, 100)) },
+      field: 'entries[0].sets',
+      message: 'sets must contain at most 50 sets',
+    },
+    { name: 'reps above 1000', override: { sets: [set(1001, 10)] }, field: 'entries[0].sets[0].reps', message: 'reps must be at most 1000' },
+    { name: 'weight above 5000', override: { sets: [set(1, 5001)] }, field: 'entries[0].sets[0].weight', message: 'weight must be at most 5000' },
     { name: 'an unexpected field', override: { userId: USER_B }, field: 'entries[0]', message: 'Unrecognized key: "userId"' },
   ];
 
