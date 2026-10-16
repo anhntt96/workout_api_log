@@ -32,10 +32,10 @@ interface ExplainOutput {
 async function seed(pool: Pool, userId: string, entries: number): Promise<void> {
   const client = await pool.connect();
   try {
-    await client.query("SELECT set_config('seed.user_id', $1, false), set_config('seed.entries', $2, false)", [
-      userId,
-      String(entries),
-    ]);
+    await client.query(
+      "SELECT set_config('seed.user_id', $1, false), set_config('seed.entries', $2, false)",
+      [userId, String(entries)],
+    );
     await client.query(await readFile(SEED_SQL, 'utf8'));
   } finally {
     client.release();
@@ -102,23 +102,36 @@ describe('50,000 entries for one user', () => {
     { name: 'first', after: undefined },
     {
       name: 'deep',
-      after: { performedOn: '2019-01-01', createdAt: '2019-01-01T00:00:00Z', id: 'ffffffff-ffff-4fff-bfff-ffffffffffff' },
+      after: {
+        performedOn: '2019-01-01',
+        createdAt: '2019-01-01T00:00:00Z',
+        id: 'ffffffff-ffff-4fff-bfff-ffffffffffff',
+      },
     },
-  ])('reads the $name history page from workout_entries_history_idx without discarding rows', async ({ after }) => {
-    const result = await explain(t.pool, buildHistoryQuery({ userId: HEAVY_USER, after, limit: 21 }));
-    const scans = entryScans(result.Plan);
-    expect(scans.map((scan) => scan['Index Name'])).toEqual(['workout_entries_history_idx']);
-    expect(scans[0]['Rows Removed by Filter'] ?? 0).toBe(0);
-    expect(rowsExamined(scans[0])).toBeLessThanOrEqual(21);
-    expect(seqScannedTables(result.Plan)).not.toContain('workout_sets');
-    expect(result['Execution Time']).toBeLessThan(QUERY_BUDGET_MS);
-  });
+  ])(
+    'reads the $name history page from workout_entries_history_idx without discarding rows',
+    async ({ after }) => {
+      const result = await explain(t.pool, buildHistoryQuery({ userId: HEAVY_USER, after, limit: 21 }));
+      const scans = entryScans(result.Plan);
+      expect(scans.map((scan) => scan['Index Name'])).toEqual(['workout_entries_history_idx']);
+      expect(scans[0]['Rows Removed by Filter'] ?? 0).toBe(0);
+      expect(rowsExamined(scans[0])).toBeLessThanOrEqual(21);
+      expect(seqScannedTables(result.Plan)).not.toContain('workout_sets');
+      expect(result['Execution Time']).toBeLessThan(QUERY_BUDGET_MS);
+    },
+  );
 
   it("reads filtered history from an index, examining a small share of the user's entries", async () => {
     const squats = await t.app.get(ExercisesRepository).findIds({ nameContains: 'squat' });
     const result = await explain(
       t.pool,
-      buildHistoryQuery({ userId: HEAVY_USER, exerciseIds: squats, from: '2025-01-01', to: '2025-12-31', limit: 21 }),
+      buildHistoryQuery({
+        userId: HEAVY_USER,
+        exerciseIds: squats,
+        from: '2025-01-01',
+        to: '2025-12-31',
+        limit: 21,
+      }),
     );
     expect(seqScannedTables(result.Plan)).not.toContain('workout_entries');
     expect(seqScannedTables(result.Plan)).not.toContain('workout_sets');
@@ -129,7 +142,10 @@ describe('50,000 entries for one user', () => {
   });
 
   it('finds all-time records from the three best_* indexes, examining few rows', async () => {
-    const result = await explain(t.pool, buildPersonalRecordsQuery({ userId: HEAVY_USER, exerciseId: deadliftId }));
+    const result = await explain(
+      t.pool,
+      buildPersonalRecordsQuery({ userId: HEAVY_USER, exerciseId: deadliftId }),
+    );
     const scans = entryScans(result.Plan);
     expect(scans.map((scan) => scan['Index Name'] ?? '').sort((a, b) => a.localeCompare(b))).toEqual([
       'workout_entries_best_e1rm_idx',
@@ -173,7 +189,9 @@ describe('50,000 entries for one user', () => {
 
   it('returns records and a comparison over HTTP', async () => {
     const server = t.app.getHttpServer();
-    const records = await request(server).get(`/users/${HEAVY_USER}/personal-records`).query({ exerciseName: 'Deadlift' });
+    const records = await request(server)
+      .get(`/users/${HEAVY_USER}/personal-records`)
+      .query({ exerciseName: 'Deadlift' });
     expect(records.status).toBe(200);
     expect(records.body.data.records.maxWeight).not.toBeNull();
     const comparison = await request(server).get(`/users/${HEAVY_USER}/personal-records/comparison`).query({

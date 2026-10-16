@@ -81,7 +81,8 @@ export function buildHistoryQuery(filter: HistoryFilter): { text: string; values
     return `$${values.length}::${type}`;
   };
   const conditions = ['e.user_id = $1::uuid'];
-  if (filter.exerciseIds !== undefined) conditions.push(`e.exercise_id = ANY(${param(filter.exerciseIds, 'uuid[]')})`);
+  if (filter.exerciseIds !== undefined)
+    conditions.push(`e.exercise_id = ANY(${param(filter.exerciseIds, 'uuid[]')})`);
   if (filter.from !== undefined) conditions.push(`e.performed_on >= ${param(filter.from, 'date')}`);
   if (filter.to !== undefined) conditions.push(`e.performed_on <= ${param(filter.to, 'date')}`);
   if (filter.after !== undefined) {

@@ -21,7 +21,11 @@ const row = (metric: PrMetric, reps: number, weight: string, unit: WeightUnit = 
 
 describe('toPersonalRecords', () => {
   it('computes each metric from the set that holds it', () => {
-    const rows = [row('maxWeight', 1, '140.000'), row('maxVolume', 10, '100.000'), row('bestE1rm', 5, '130.000')];
+    const rows = [
+      row('maxWeight', 1, '140.000'),
+      row('maxVolume', 10, '100.000'),
+      row('bestE1rm', 5, '130.000'),
+    ];
     expect(presentRecords(toPersonalRecords(rows, 'kg'))).toEqual({
       maxWeight: { value: 140, weight: 140, reps: 1, date: '2026-10-10', entryId: 'entry-maxWeight' },
       maxVolume: { value: 1000, weight: 100, reps: 10, date: '2026-10-10', entryId: 'entry-maxVolume' },
@@ -33,14 +37,18 @@ describe('toPersonalRecords', () => {
     const rows = [row('maxWeight', 1, '315.000', 'lb')];
     expect(presentRecords(toPersonalRecords(rows, 'lb')).maxWeight?.value).toBe(315);
     expect(presentRecords(toPersonalRecords(rows, 'kg')).maxWeight?.value).toBe(142.88);
-    expect(presentRecords(toPersonalRecords([row('maxWeight', 1, '100.125')], 'kg')).maxWeight).toMatchObject({
-      value: 100.125,
-      weight: 100.125,
-    });
-    expect(presentRecords(toPersonalRecords([row('maxWeight', 1, '100.125')], 'lb')).maxWeight).toMatchObject({
-      value: 220.74,
-      weight: 220.74,
-    });
+    expect(presentRecords(toPersonalRecords([row('maxWeight', 1, '100.125')], 'kg')).maxWeight).toMatchObject(
+      {
+        value: 100.125,
+        weight: 100.125,
+      },
+    );
+    expect(presentRecords(toPersonalRecords([row('maxWeight', 1, '100.125')], 'lb')).maxWeight).toMatchObject(
+      {
+        value: 220.74,
+        weight: 220.74,
+      },
+    );
   });
 
   it('leaves metrics without data as null', () => {
@@ -59,7 +67,11 @@ describe('compareRecords', () => {
     entryId: 'e',
     inLoggedUnit: true,
   });
-  const records = (maxWeight: number | null, maxVolume: number | null = null, bestE1rm: number | null = null): PersonalRecords => ({
+  const records = (
+    maxWeight: number | null,
+    maxVolume: number | null = null,
+    bestE1rm: number | null = null,
+  ): PersonalRecords => ({
     maxWeight: maxWeight === null ? null : record(maxWeight),
     maxVolume: maxVolume === null ? null : record(maxVolume),
     bestE1rm: bestE1rm === null ? null : record(bestE1rm),
@@ -78,7 +90,11 @@ describe('compareRecords', () => {
   });
 
   it('is null for a metric missing in either period', () => {
-    expect(compareRecords(records(105), records(null))).toEqual({ maxWeight: null, maxVolume: null, bestE1rm: null });
+    expect(compareRecords(records(105), records(null))).toEqual({
+      maxWeight: null,
+      maxVolume: null,
+      bestE1rm: null,
+    });
   });
 
   it('has no percent change from a zero baseline (bodyweight sets)', () => {

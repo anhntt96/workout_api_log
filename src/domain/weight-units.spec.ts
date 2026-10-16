@@ -1,5 +1,11 @@
 import { Decimal } from 'decimal.js';
-import { WEIGHT_UNITS, convertWeight, isWeightUnit, roundForDisplay, roundForStorage } from './weight-units.js';
+import {
+  WEIGHT_UNITS,
+  convertWeight,
+  isWeightUnit,
+  roundForDisplay,
+  roundForStorage,
+} from './weight-units.js';
 
 describe('weight units', () => {
   it('lists the supported units', () => {

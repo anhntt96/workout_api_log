@@ -28,7 +28,10 @@ describe('exercise catalog', () => {
     const res = await request(t.app.getHttpServer()).get('/exercises');
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(16);
-    expect(res.body.data).toContainEqual({ name: 'Bench Press', muscleGroups: ['chest', 'shoulders', 'triceps'] });
+    expect(res.body.data).toContainEqual({
+      name: 'Bench Press',
+      muscleGroups: ['chest', 'shoulders', 'triceps'],
+    });
   });
 
   it('resolves names trimmed and case-insensitively to the canonical name', async () => {
@@ -51,7 +54,9 @@ describe('exercise catalog', () => {
   });
 
   it('finds exercises by muscle group and combines both filters', async () => {
-    expect(await namesOf(t.pool, await repository.findIds({ muscleGroup: 'Calves' }))).toEqual(['Calf Raise']);
+    expect(await namesOf(t.pool, await repository.findIds({ muscleGroup: 'Calves' }))).toEqual([
+      'Calf Raise',
+    ]);
     expect(
       await namesOf(t.pool, await repository.findIds({ nameContains: 'press', muscleGroup: 'chest' })),
     ).toEqual(['Bench Press', 'Incline Bench Press']);
@@ -59,7 +64,16 @@ describe('exercise catalog', () => {
 
   it('lists muscle groups alphabetically', async () => {
     await expect(repository.listMuscleGroups()).resolves.toEqual([
-      'back', 'biceps', 'calves', 'chest', 'core', 'glutes', 'hamstrings', 'quadriceps', 'shoulders', 'triceps',
+      'back',
+      'biceps',
+      'calves',
+      'chest',
+      'core',
+      'glutes',
+      'hamstrings',
+      'quadriceps',
+      'shoulders',
+      'triceps',
     ]);
   });
 });

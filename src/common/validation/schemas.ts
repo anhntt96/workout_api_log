@@ -5,7 +5,9 @@ import { WEIGHT_UNITS, type WeightUnit, isWeightUnit } from '../../domain/weight
 export function requiredError(field: string, expected: string) {
   return {
     error: (issue: { input?: unknown }) =>
-      issue.input === undefined || issue.input === null ? `${field} is required` : `${field} must be ${expected}`,
+      issue.input === undefined || issue.input === null
+        ? `${field} is required`
+        : `${field} must be ${expected}`,
   };
 }
 
@@ -17,13 +19,15 @@ const EARLIEST_DATE = '0001-01-01';
 
 /** A real calendar day in YYYY-MM-DD form. */
 export function plainDateSchema(field: string) {
-  return z.iso
-    .date(requiredError(field, 'a date in YYYY-MM-DD format'))
-    // `when` skips the bound check for input the format check already rejected, so `''` reports one error.
-    .refine((value) => value >= EARLIEST_DATE, {
-      error: `${field} must be on or after ${EARLIEST_DATE}`,
-      when: (payload) => payload.issues.length === 0,
-    });
+  return (
+    z.iso
+      .date(requiredError(field, 'a date in YYYY-MM-DD format'))
+      // `when` skips the bound check for input the format check already rejected, so `''` reports one error.
+      .refine((value) => value >= EARLIEST_DATE, {
+        error: `${field} must be on or after ${EARLIEST_DATE}`,
+        when: (payload) => payload.issues.length === 0,
+      })
+  );
 }
 
 /** True when `value` contains an ASCII control character. Postgres `text` cannot even store U+0000. */

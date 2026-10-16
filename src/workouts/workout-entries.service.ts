@@ -69,7 +69,10 @@ export class WorkoutEntriesService {
     let exerciseIds: string[] | undefined;
     if (query.exerciseName !== undefined || query.muscleGroup !== undefined) {
       // Resolve the filters on the small exercises table first, then scan only the user's entries.
-      exerciseIds = await this.exercises.findIds({ nameContains: query.exerciseName, muscleGroup: query.muscleGroup });
+      exerciseIds = await this.exercises.findIds({
+        nameContains: query.exerciseName,
+        muscleGroup: query.muscleGroup,
+      });
       if (exerciseIds.length === 0) return { entries: [], nextCursor: null };
     }
     const rows = await this.entries.findHistoryPage({
@@ -93,7 +96,10 @@ export class WorkoutEntriesService {
     const groups = await this.exercises.listMuscleGroups();
     if (!groups.some((group) => group.toLowerCase() === name.toLowerCase())) {
       throw new RequestValidationError([
-        { field: 'muscleGroup', message: `Unknown muscle group "${name}". Valid muscle groups: ${groups.join(', ')}` },
+        {
+          field: 'muscleGroup',
+          message: `Unknown muscle group "${name}". Valid muscle groups: ${groups.join(', ')}`,
+        },
       ]);
     }
   }

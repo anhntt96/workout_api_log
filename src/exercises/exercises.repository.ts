@@ -61,7 +61,8 @@ export class ExercisesRepository {
 
   /** Ids of exercises matching every given filter. */
   async findIds(filter: ExerciseFilter): Promise<string[]> {
-    const namePattern = filter.nameContains === undefined ? null : `%${escapeLikePattern(filter.nameContains)}%`;
+    const namePattern =
+      filter.nameContains === undefined ? null : `%${escapeLikePattern(filter.nameContains)}%`;
     const { rows } = await this.pool.query<{ id: string }>(
       `SELECT e.id
        FROM exercises e

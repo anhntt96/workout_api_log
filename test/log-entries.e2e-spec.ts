@@ -27,7 +27,9 @@ describe('POST /users/:userId/workout-entries', () => {
   });
 
   it('logs an entry and returns it with the canonical exercise name', async () => {
-    const res = await logEntries(t.app, USER_A, [entry('2026-10-14', '  bench PRESS ', [set(5, 100), set(3, 102.5)])]);
+    const res = await logEntries(t.app, USER_A, [
+      entry('2026-10-14', '  bench PRESS ', [set(5, 100), set(3, 102.5)]),
+    ]);
     expect(res.status).toBe(201);
     expect(entriesOf(res)).toEqual([
       {
@@ -56,7 +58,9 @@ describe('POST /users/:userId/workout-entries', () => {
   });
 
   it('stores the logged weight and unit next to normalized kilograms and the PR summary', async () => {
-    const res = await logEntries(t.app, USER_A, [entry('2026-10-14', 'Deadlift', [set(5, 225, 'lb'), set(1, 300, 'LB')])]);
+    const res = await logEntries(t.app, USER_A, [
+      entry('2026-10-14', 'Deadlift', [set(5, 225, 'lb'), set(1, 300, 'LB')]),
+    ]);
     expect(res.status).toBe(201);
     const id = entriesOf(res)[0].id;
     const sets = await t.pool.query(
@@ -72,7 +76,11 @@ describe('POST /users/:userId/workout-entries', () => {
       [id],
     );
     // Volume: 5 × 102.058; e1RM: 136.078 × (1 + 1/30) = 140.6139…
-    expect(summary.rows[0]).toEqual({ best_weight_kg: '136.078', best_volume_kg: '510.290', best_e1rm_kg: '140.614' });
+    expect(summary.rows[0]).toEqual({
+      best_weight_kg: '136.078',
+      best_volume_kg: '510.290',
+      best_e1rm_kg: '140.614',
+    });
   });
 
   it("reads the date in the client's offset, never converting to UTC", async () => {
@@ -89,7 +97,10 @@ describe('POST /users/:userId/workout-entries', () => {
     const tooLate = await logEntries(t.app, USER_A, [entry('2026-10-17', 'Deadlift')]);
     expect(tooLate.status).toBe(400);
     expect(tooLate.body.errors).toEqual([
-      { field: 'entries[0].date', message: 'date must not be after 2026-10-16 (more than one day in the future)' },
+      {
+        field: 'entries[0].date',
+        message: 'date must not be after 2026-10-16 (more than one day in the future)',
+      },
     ]);
   });
 
@@ -104,8 +115,14 @@ describe('POST /users/:userId/workout-entries', () => {
       statusCode: 400,
       code: 'VALIDATION_ERROR',
       errors: [
-        { field: 'entries[1].exerciseName', message: 'Unknown exercise "Squat". GET /exercises lists the valid names' },
-        { field: 'entries[2].exerciseName', message: 'Unknown exercise "Benchpress". GET /exercises lists the valid names' },
+        {
+          field: 'entries[1].exerciseName',
+          message: 'Unknown exercise "Squat". GET /exercises lists the valid names',
+        },
+        {
+          field: 'entries[2].exerciseName',
+          message: 'Unknown exercise "Benchpress". GET /exercises lists the valid names',
+        },
       ],
     });
     expect(await countEntries(t.pool)).toBe(0);
@@ -125,14 +142,24 @@ describe('POST /users/:userId/workout-entries', () => {
       field: 'entries[0].date',
       message: '"2026-02-30" is not a valid calendar date',
     },
-    { name: 'an empty sets array', override: { sets: [] }, field: 'entries[0].sets', message: 'sets must contain at least one set' },
+    {
+      name: 'an empty sets array',
+      override: { sets: [] },
+      field: 'entries[0].sets',
+      message: 'sets must contain at least one set',
+    },
     {
       name: 'a negative weight',
       override: { sets: [set(5, -10)] },
       field: 'entries[0].sets[0].weight',
       message: 'weight must not be negative',
     },
-    { name: 'zero reps', override: { sets: [set(0, 10)] }, field: 'entries[0].sets[0].reps', message: 'reps must be at least 1' },
+    {
+      name: 'zero reps',
+      override: { sets: [set(0, 10)] },
+      field: 'entries[0].sets[0].reps',
+      message: 'reps must be at least 1',
+    },
     {
       name: 'fractional reps',
       override: { sets: [set(2.5, 10)] },
@@ -169,9 +196,24 @@ describe('POST /users/:userId/workout-entries', () => {
       field: 'entries[0].sets',
       message: 'sets must contain at most 50 sets',
     },
-    { name: 'reps above 1000', override: { sets: [set(1001, 10)] }, field: 'entries[0].sets[0].reps', message: 'reps must be at most 1000' },
-    { name: 'weight above 5000', override: { sets: [set(1, 5001)] }, field: 'entries[0].sets[0].weight', message: 'weight must be at most 5000' },
-    { name: 'an unexpected field', override: { userId: USER_B }, field: 'entries[0]', message: 'Unrecognized key: "userId"' },
+    {
+      name: 'reps above 1000',
+      override: { sets: [set(1001, 10)] },
+      field: 'entries[0].sets[0].reps',
+      message: 'reps must be at most 1000',
+    },
+    {
+      name: 'weight above 5000',
+      override: { sets: [set(1, 5001)] },
+      field: 'entries[0].sets[0].weight',
+      message: 'weight must be at most 5000',
+    },
+    {
+      name: 'an unexpected field',
+      override: { userId: USER_B },
+      field: 'entries[0]',
+      message: 'Unrecognized key: "userId"',
+    },
   ];
 
   it.each(invalidCases)('rejects $name', async ({ override, field, message }) => {
@@ -198,7 +240,12 @@ describe('POST /users/:userId/workout-entries', () => {
   it.each([
     { name: 'a JSON array body', body: [], field: 'body', message: 'Request body must be a JSON object' },
     { name: 'a missing entries field', body: {}, field: 'entries', message: 'entries is required' },
-    { name: 'an empty entries array', body: { entries: [] }, field: 'entries', message: 'entries must contain at least one entry' },
+    {
+      name: 'an empty entries array',
+      body: { entries: [] },
+      field: 'entries',
+      message: 'entries must contain at least one entry',
+    },
     {
       name: 'more than 50 entries',
       body: { entries: Array.from({ length: 51 }, () => entry('2026-10-14', 'Deadlift')) },

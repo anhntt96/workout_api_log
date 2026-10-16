@@ -8,7 +8,10 @@ import { APP_CONFIG, type AppConfig } from './config/app-config.js';
 import { PG_POOL } from './database/database.module.js';
 import { migrate } from './database/migrate.js';
 
-const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, bodyParser: false });
+const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  bufferLogs: true,
+  bodyParser: false,
+});
 configureApp(app);
 app.enableShutdownHooks();
 

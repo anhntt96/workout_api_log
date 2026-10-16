@@ -6,7 +6,12 @@ import {
   exerciseKey,
   unknownExercise,
 } from '../exercises/exercises.repository.js';
-import { type PersonalRecords, type RecordChanges, compareRecords, toPersonalRecords } from './personal-records.js';
+import {
+  type PersonalRecords,
+  type RecordChanges,
+  compareRecords,
+  toPersonalRecords,
+} from './personal-records.js';
 import { PersonalRecordsRepository } from './personal-records.repository.js';
 import type { PersonalRecordsQuery, RecordsComparisonQuery } from './personal-records.schemas.js';
 

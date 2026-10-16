@@ -45,7 +45,11 @@ describe('GET /users/:userId/workout-entries', () => {
   });
 
   it('filters by partial exercise name, case-insensitively', async () => {
-    await log([entry('2026-10-01', 'Back Squat'), entry('2026-10-02', 'Front Squat'), entry('2026-10-03', 'Deadlift')]);
+    await log([
+      entry('2026-10-01', 'Back Squat'),
+      entry('2026-10-02', 'Front Squat'),
+      entry('2026-10-03', 'Deadlift'),
+    ]);
     expect(entriesOf(await get(USER_A, { exerciseName: 'SQUAT' })).map((e) => e.exerciseName)).toEqual([
       'Front Squat',
       'Back Squat',
@@ -62,7 +66,11 @@ describe('GET /users/:userId/workout-entries', () => {
   });
 
   it('filters by muscle group through the exercise mapping', async () => {
-    await log([entry('2026-10-01', 'Bench Press'), entry('2026-10-02', 'Deadlift'), entry('2026-10-03', 'Pull-Up')]);
+    await log([
+      entry('2026-10-01', 'Bench Press'),
+      entry('2026-10-02', 'Deadlift'),
+      entry('2026-10-03', 'Pull-Up'),
+    ]);
     expect(entriesOf(await get(USER_A, { muscleGroup: 'Back' })).map((e) => e.exerciseName)).toEqual([
       'Pull-Up',
       'Deadlift',
@@ -77,7 +85,9 @@ describe('GET /users/:userId/workout-entries', () => {
        SELECT e.id, m.id FROM exercises e, muscle_groups m WHERE e.name = 'Calf Raise' AND m.name = 'core'`,
     );
     try {
-      expect(entriesOf(await get(USER_A, { muscleGroup: 'core' })).map((e) => e.exerciseName)).toEqual(['Calf Raise']);
+      expect(entriesOf(await get(USER_A, { muscleGroup: 'core' })).map((e) => e.exerciseName)).toEqual([
+        'Calf Raise',
+      ]);
     } finally {
       await t.pool.query(
         `DELETE FROM exercise_muscle_groups em USING exercises e, muscle_groups m
@@ -99,11 +109,12 @@ describe('GET /users/:userId/workout-entries', () => {
   });
 
   it('filters by an inclusive date range', async () => {
-    await log(['2026-09-30', '2026-10-01', '2026-10-15', '2026-10-16'].map((date) => entry(date, 'Deadlift')));
-    expect(entriesOf(await get(USER_A, { from: '2026-10-01', to: '2026-10-15' })).map((e) => e.date)).toEqual([
-      '2026-10-15',
-      '2026-10-01',
-    ]);
+    await log(
+      ['2026-09-30', '2026-10-01', '2026-10-15', '2026-10-16'].map((date) => entry(date, 'Deadlift')),
+    );
+    expect(entriesOf(await get(USER_A, { from: '2026-10-01', to: '2026-10-15' })).map((e) => e.date)).toEqual(
+      ['2026-10-15', '2026-10-01'],
+    );
   });
 
   it('returns an empty list with a message for a range without data', async () => {
@@ -164,7 +175,12 @@ describe('GET /users/:userId/workout-entries', () => {
   const invalidQueries: InvalidQueryCase[] = [
     { name: 'limit 0', query: { limit: 0 }, field: 'limit', message: 'limit must be at least 1' },
     { name: 'limit 101', query: { limit: 101 }, field: 'limit', message: 'limit must be at most 100' },
-    { name: 'a non-numeric limit', query: { limit: 'ten' }, field: 'limit', message: 'limit must be a number' },
+    {
+      name: 'a non-numeric limit',
+      query: { limit: 'ten' },
+      field: 'limit',
+      message: 'limit must be a number',
+    },
     {
       name: 'a reversed range',
       query: { from: '2026-10-05', to: '2026-10-01' },
@@ -189,14 +205,24 @@ describe('GET /users/:userId/workout-entries', () => {
       field: 'cursor',
       message: 'cursor is invalid; use nextCursor from the previous page',
     },
-    { name: 'a misspelled parameter', query: { exercise: 'bench' }, field: 'query', message: 'Unrecognized key: "exercise"' },
+    {
+      name: 'a misspelled parameter',
+      query: { exercise: 'bench' },
+      field: 'query',
+      message: 'Unrecognized key: "exercise"',
+    },
     {
       name: 'a control character in the muscle group',
       query: { muscleGroup: 'back\u0000' },
       field: 'muscleGroup',
       message: 'muscleGroup must not contain control characters',
     },
-    { name: 'a year-zero date', query: { from: '0000-01-01' }, field: 'from', message: 'from must be on or after 0001-01-01' },
+    {
+      name: 'a year-zero date',
+      query: { from: '0000-01-01' },
+      field: 'from',
+      message: 'from must be on or after 0001-01-01',
+    },
   ];
 
   it.each(invalidQueries)('rejects $name', async ({ query, field, message }) => {

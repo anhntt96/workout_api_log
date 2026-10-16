@@ -23,7 +23,9 @@ export function isCalendarDate(value: string): boolean {
  */
 export function parseWorkoutDate(input: string): WorkoutDateResult {
   if (PLAIN_DATE.test(input)) {
-    return isCalendarDate(input) ? { ok: true, date: input } : invalid(`"${input}" is not a valid calendar date`);
+    return isCalendarDate(input)
+      ? { ok: true, date: input }
+      : invalid(`"${input}" is not a valid calendar date`);
   }
   const match = DATETIME_WITH_OFFSET.exec(input);
   if (match) {

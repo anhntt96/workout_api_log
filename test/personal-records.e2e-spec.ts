@@ -69,7 +69,10 @@ describe('GET /users/:userId/personal-records', () => {
     const kg = await getRecords({ exerciseName: 'Deadlift' });
     expect(kg.body.data.records.maxWeight).toMatchObject({ value: 100, date: '2026-09-02' });
     const lb = await getRecords({ exerciseName: 'Deadlift', unit: 'lb' });
-    expect(lb.body.data).toMatchObject({ unit: 'lb', records: { maxWeight: { value: 220.46, weight: 220.46 } } });
+    expect(lb.body.data).toMatchObject({
+      unit: 'lb',
+      records: { maxWeight: { value: 220.46, weight: 220.46 } },
+    });
   });
 
   it('keeps a weight exact in the unit it was logged in', async () => {
@@ -114,7 +117,12 @@ describe('GET /users/:userId/personal-records', () => {
   });
 
   const invalidQueries: InvalidQueryCase[] = [
-    { name: 'a missing exercise name', query: {}, field: 'exerciseName', message: 'exerciseName is required' },
+    {
+      name: 'a missing exercise name',
+      query: {},
+      field: 'exerciseName',
+      message: 'exerciseName is required',
+    },
     {
       name: 'an unknown exercise',
       query: { exerciseName: 'Benchpress' },

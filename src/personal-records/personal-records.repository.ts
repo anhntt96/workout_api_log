@@ -18,7 +18,10 @@ export interface RecordQuery {
  */
 const METRIC_SQL: Record<PrMetric, { column: string; setOrder: string }> = {
   maxWeight: { column: 'best_weight_kg', setOrder: 'ws.weight_kg DESC, ws.reps DESC, ws.set_index' },
-  maxVolume: { column: 'best_volume_kg', setOrder: 'ws.reps * ws.weight_kg DESC, ws.weight_kg DESC, ws.set_index' },
+  maxVolume: {
+    column: 'best_volume_kg',
+    setOrder: 'ws.reps * ws.weight_kg DESC, ws.weight_kg DESC, ws.set_index',
+  },
   bestE1rm: { column: 'best_e1rm_kg', setOrder: 'ws.weight_kg * (ws.reps + 30) DESC, ws.set_index' },
 };
 

@@ -43,7 +43,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
 function toErrorBody(exception: unknown): Omit<ErrorResponseBody, 'requestId'> {
   if (exception instanceof RequestValidationError) {
-    return { statusCode: 400, code: 'VALIDATION_ERROR', message: exception.message, errors: exception.errors };
+    return {
+      statusCode: 400,
+      code: 'VALIDATION_ERROR',
+      message: exception.message,
+      errors: exception.errors,
+    };
   }
   if (exception instanceof HttpException) {
     return httpError(exception.getStatus(), exception.message);
@@ -51,7 +56,8 @@ function toErrorBody(exception: unknown): Omit<ErrorResponseBody, 'requestId'> {
   if (isClientHttpError(exception)) {
     // Raised by Express middleware that Nest does not map itself, such as body-parser's 413 (oversized
     // body) or 415 (unsupported charset). The message is shown only when the error marks it safe to expose.
-    const message = exception.expose === true ? exception.message : (STATUS_CODES[exception.status] ?? 'Bad Request');
+    const message =
+      exception.expose === true ? exception.message : (STATUS_CODES[exception.status] ?? 'Bad Request');
     return httpError(exception.status, message);
   }
   return { statusCode: 500, code: 'INTERNAL_ERROR', message: 'Internal server error' };

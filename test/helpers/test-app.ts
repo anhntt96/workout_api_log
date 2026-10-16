@@ -21,7 +21,12 @@ export interface TestApp {
 
 /** The real AppModule against the Testcontainers database, with silent logs and a fixed clock. */
 export async function createTestApp(): Promise<TestApp> {
-  const config: AppConfig = { databaseUrl: inject('databaseUrl'), port: 0, logLevel: 'silent', dbPoolMax: 20 };
+  const config: AppConfig = {
+    databaseUrl: inject('databaseUrl'),
+    port: 0,
+    logLevel: 'silent',
+    dbPoolMax: 20,
+  };
   const clock: Clock = { now: () => TEST_NOW };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(APP_CONFIG)

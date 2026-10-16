@@ -37,7 +37,9 @@ export class PersonalRecordsController {
       },
       ...(hasAnyRecord(records)
         ? {}
-        : { message: `No ${exercise.name} entries found for this user${ranged ? ' in the given date range' : ''}.` }),
+        : {
+            message: `No ${exercise.name} entries found for this user${ranged ? ' in the given date range' : ''}.`,
+          }),
     };
   }
 
@@ -54,10 +56,16 @@ export class PersonalRecordsController {
         exerciseName: result.exercise.name,
         unit: query.unit,
         current: { from: query.from, to: query.to, records: presentRecords(result.current) },
-        baseline: { from: query.baselineFrom, to: query.baselineTo, records: presentRecords(result.baseline) },
+        baseline: {
+          from: query.baselineFrom,
+          to: query.baselineTo,
+          records: presentRecords(result.baseline),
+        },
         change: result.change,
       },
-      ...(noData ? { message: `No ${result.exercise.name} entries found for this user in either date range.` } : {}),
+      ...(noData
+        ? { message: `No ${result.exercise.name} entries found for this user in either date range.` }
+        : {}),
     };
   }
 }

@@ -39,15 +39,19 @@ describe('parseWorkoutDate', () => {
     expect(parseWorkoutDate(input).ok).toBe(false);
   });
 
-  it.each(['14/10/2026', '2026-1-4', '', 'yesterday', '2026-10-14 06:00:00+07:00', '2026-10-14T06:00:00+0700'])(
-    'rejects unsupported format %j',
-    (input) => {
-      expect(parseWorkoutDate(input)).toEqual({
-        ok: false,
-        message: 'date must be YYYY-MM-DD or an ISO 8601 datetime with an offset',
-      });
-    },
-  );
+  it.each([
+    '14/10/2026',
+    '2026-1-4',
+    '',
+    'yesterday',
+    '2026-10-14 06:00:00+07:00',
+    '2026-10-14T06:00:00+0700',
+  ])('rejects unsupported format %j', (input) => {
+    expect(parseWorkoutDate(input)).toEqual({
+      ok: false,
+      message: 'date must be YYYY-MM-DD or an ISO 8601 datetime with an offset',
+    });
+  });
 });
 
 describe('isCalendarDate', () => {

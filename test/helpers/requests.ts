@@ -31,7 +31,11 @@ export function logEntries(
 }
 
 /** Logs entries that must be accepted and returns them. */
-export async function logOk(app: NestExpressApplication, userId: string, entries: unknown[]): Promise<EntryResponse[]> {
+export async function logOk(
+  app: NestExpressApplication,
+  userId: string,
+  entries: unknown[],
+): Promise<EntryResponse[]> {
   const res = await logEntries(app, userId, entries);
   expect(res.status).toBe(201);
   return entriesOf(res);

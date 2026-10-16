@@ -37,8 +37,16 @@ describe('GET /users/:userId/personal-records/comparison', () => {
     expect(res.body.data).toMatchObject({
       exerciseName: 'Bench Press',
       unit: 'kg',
-      current: { from: '2026-10-01', to: '2026-10-31', records: { maxWeight: { value: 110, date: '2026-10-03' } } },
-      baseline: { from: '2026-09-01', to: '2026-09-30', records: { maxWeight: { value: 105, date: '2026-09-20' } } },
+      current: {
+        from: '2026-10-01',
+        to: '2026-10-31',
+        records: { maxWeight: { value: 110, date: '2026-10-03' } },
+      },
+      baseline: {
+        from: '2026-09-01',
+        to: '2026-09-30',
+        records: { maxWeight: { value: 105, date: '2026-09-20' } },
+      },
       change: {
         maxWeight: { absolute: 5, percent: 4.76 },
         maxVolume: { absolute: -170, percent: -34 },
@@ -79,7 +87,12 @@ describe('GET /users/:userId/personal-records/comparison', () => {
   });
 
   it('requires both periods and reports every reversed range', async () => {
-    const missing = await compare({ exerciseName: 'Bench Press', from: '2026-10-01', to: '2026-10-31', baselineFrom: '2026-09-01' });
+    const missing = await compare({
+      exerciseName: 'Bench Press',
+      from: '2026-10-01',
+      to: '2026-10-31',
+      baselineFrom: '2026-09-01',
+    });
     expect(missing.status).toBe(400);
     expect(missing.body.errors).toEqual([{ field: 'baselineTo', message: 'baselineTo is required' }]);
 

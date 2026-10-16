@@ -59,7 +59,9 @@ describe('idempotent and concurrent logging', () => {
 
   it('keeps every concurrent log of the same exercise on the same day without keys or with different keys', async () => {
     const withoutKeys = Array.from({ length: 5 }, () => logEntries(t.app, USER_A, [benchPress(100)]));
-    const withKeys = Array.from({ length: 5 }, (_, i) => logEntries(t.app, USER_A, [benchPress(100)], `distinct-${i}`));
+    const withKeys = Array.from({ length: 5 }, (_, i) =>
+      logEntries(t.app, USER_A, [benchPress(100)], `distinct-${i}`),
+    );
     const responses = await Promise.all([...withoutKeys, ...withKeys]);
     expect(responses.every((res) => res.status === 201)).toBe(true);
     expect(await countEntries(t.pool)).toBe(10);
@@ -69,7 +71,10 @@ describe('idempotent and concurrent logging', () => {
     await logEntries(t.app, USER_A, [benchPress(100)], 'shared-key');
     const other = await logEntries(t.app, USER_B, [benchPress(80)], 'shared-key');
     expect(other.headers['idempotent-replayed']).toBeUndefined();
-    expect(entriesOf(other)[0]).toMatchObject({ userId: USER_B, sets: [{ reps: 5, weight: 80, unit: 'kg' }] });
+    expect(entriesOf(other)[0]).toMatchObject({
+      userId: USER_B,
+      sets: [{ reps: 5, weight: 80, unit: 'kg' }],
+    });
     expect(await countEntries(t.pool)).toBe(2);
   });
 
