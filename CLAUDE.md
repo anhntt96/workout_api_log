@@ -16,6 +16,8 @@ This repo is a take-home backend assignment (Everfit): a **Workout Logging API**
 - `scripts/demo.sh` — curl walkthrough of every endpoint and error case.
 - `cd frontend && npm run dev` — React UI on :5173; proxies `/api` to the API on :3000 (`API_URL` overrides).
 - `cd frontend && npm test` — frontend tests (Vitest, jsdom, Testing Library, MSW); `npm run lint`, `npm run typecheck`, `npm run build` and `npm run format:check` work there too.
+- `scripts/smoke-test.sh [BASE_URL] [--rate-limit]` — checks a running stack through nginx (default `http://localhost:8080`; production is `https://workout.albertnguyen.dev`). Use `--rate-limit` only against a local stack.
+- `deploy/test-deploy.sh` — rehearses `deploy/deploy.sh` with the production Compose file on port 8081: a failed first deploy, a good release, a backup and restore, and a broken release that rolls back. Needs Docker, curl, jq and rclone.
 
 ## Code conventions
 
@@ -42,6 +44,7 @@ Read the ADR Summary sections before touching the data model or API. The ADRs bu
 - **0002 – Dates.** `performed_on` is a `DATE` holding the client's local calendar day; `created_at` is a UTC `TIMESTAMPTZ`. The `date` input is either `YYYY-MM-DD` or an ISO datetime **with an offset**, and the date is read in the offset given, never converted to UTC first. A datetime without an offset returns `400`. Dates more than one day in the future return `400`. History filters use inclusive `from`/`to` on `performed_on`. PR comparison takes explicit date ranges per period (the server never computes "this month"). Same-day ordering is `created_at DESC, id DESC`.
 - **0003 – Concurrency/idempotency.** Same-day repeats of an exercise are separate entries (no unique constraint on `(user_id, exercise_id, performed_on)`). An optional `Idempotency-Key` header is stored per entry as `K#0`, `K#1`, … in the existing `UNIQUE (user_id, idempotency_key)` column. The exercise find-or-create parts are superseded by 0004. The ADR is deliberately kept simple for a home assignment.
 - **0004 – Exercise catalog.** `exercises` is a fixed catalog seeded by migration. The API never creates exercises. `exerciseName` is the only identifier in requests, matched trimmed and case-insensitive, and the response returns the canonical name. `GET /exercises` lists the catalog. An unknown name returns `400` naming the field (e.g. `entries[2].exerciseName`). Bulk requests are all-or-nothing. Entries store a FK to `exercises.id`.
+- **0005 – Deployment.** One VPS runs `deploy/compose.yaml` (Postgres, the API, nginx and cloudflared) behind a Cloudflare Tunnel at `workout.albertnguyen.dev`, with the UI at `/` and the API at `/api/*`. No service in `deploy/compose.yaml` publishes a port. GitHub Actions deploys commit-SHA images from GHCR with `deploy/deploy.sh`, which rolls back an unhealthy release, so migrations must stay compatible with the previous release. nginx rate-limits per `CF-Connecting-IP`, sets a same-origin CSP (so no inline scripts or styles in the frontend), and answers 429 and 502/504 in the API's error format. The runbook is `docs/deployment.md`.
 
 Cross-cutting: validation errors use one structured error format that names the offending field path.
 

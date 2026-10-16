@@ -2,6 +2,8 @@
 
 Coaches log their clients' workouts and query history and personal records (PRs). The stack is NestJS 12, PostgreSQL 18 and TypeScript, and `docker compose up` brings it up together with a React frontend for demos.
 
+**Live demo:** https://workout.albertnguyen.dev, with the API under https://workout.albertnguyen.dev/api (for example `curl https://workout.albertnguyen.dev/api/exercises`). As the brief specifies, it has no authentication, so it is rate-limited and its data may be reset.
+
 - Bulk logging in `kg` or `lb`, normalized to kg and stored next to the logged values
 - History filtered by partial exercise name, muscle group and date range, returned in any unit, with cursor pagination
 - PRs (heaviest set, highest-volume set, best Epley 1RM), each with the date it was reached, and a comparison between two periods
@@ -80,6 +82,16 @@ npm run dev        # http://localhost:5173; proxies /api to http://localhost:300
 | `npm test` | Unit and component tests (Vitest, Testing Library, MSW); no API needed |
 | `npm run lint` / `npm run typecheck` / `npm run build` | oxlint, `tsc --noEmit`, production build |
 | `npm run format:check` | Prettier, with Tailwind class sorting |
+
+## Deployment
+
+Production is one VPS behind a Cloudflare Tunnel ([ADR 0005](docs/adr/0005-single-vps-behind-cloudflare-tunnel.md)). Docker Compose runs Postgres, the API, nginx with the UI, and `cloudflared`, and no container publishes a port. Cloudflare provides TLS, caching and a WAF rate rule. nginx adds per-client rate limits and security headers, and answers its own errors in the API's error format.
+
+- Every pull request runs lint, type checks, unit and e2e tests, a smoke test of the Docker stack (`scripts/smoke-test.sh`) and a rehearsal of the production deploy (`deploy/test-deploy.sh`).
+- Every push to `main` builds images tagged with the commit SHA into GHCR, deploys them over SSH, and smoke-tests the public URL. A release that doesn't become healthy rolls back automatically.
+- Postgres is dumped to Cloudflare R2 every night, and each dump is kept for 14 days.
+
+The runbook, [docs/deployment.md](docs/deployment.md), covers setup, rollback, logs, backups and restore.
 
 ## Architecture
 
