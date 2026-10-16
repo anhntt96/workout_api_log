@@ -1,5 +1,7 @@
 # Workout Logging API
 
+**Live demo: <https://workout.albertnguyen.dev/>**
+
 Coaches log their clients' workouts and query history and personal records (PRs). The stack is NestJS 12, PostgreSQL 18 and TypeScript, and `docker compose up` brings it up together with a React frontend for demos.
 
 - Bulk logging in `kg` or `lb`, normalized to kg and stored next to the logged values
