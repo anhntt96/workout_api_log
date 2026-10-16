@@ -37,5 +37,20 @@ services:
       timeout: 3s
       retries: 12
 
+  web:
+    build: ./frontend
+    restart: on-failure
+    ports:
+      - '${WEB_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # 127.0.0.1, not localhost: nginx listens on IPv4 only, and localhost can resolve to ::1.
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
 volumes:
   db-data:

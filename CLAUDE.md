@@ -4,16 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This repo is a take-home backend assignment (Everfit): a **Workout Logging API** where coaches log client workouts and query history and personal records (PRs). The brief is `Everfit_Test for Backend Engineer.md` (a Markdown conversion of `Everfit_Test for Backend Engineer.pdf`; both gitignored, local only). Read the `.md` version.
+This repo is a take-home backend assignment (Everfit): a **Workout Logging API** where coaches log client workouts and query history and personal records (PRs). The brief is `Everfit_Test for Backend Engineer.md` (a Markdown conversion of `Everfit_Test for Backend Engineer.pdf`; both gitignored, local only). Read the `.md` version. `frontend/` holds a React demo UI for the API (see "Frontend conventions").
 
 ## Commands
 
-- `docker compose up --build --wait` — API on :3000 and Postgres 18 on :5433; migrations run on startup.
+- `docker compose up --build --wait` — UI on :8080, API on :3000 and Postgres 18 on :5433; migrations run on startup.
 - `npm run start:dev` — watch mode; needs `DATABASE_URL`, e.g. `docker compose up -d db` then `DATABASE_URL=postgres://workout:workout@localhost:5433/workout npm run start:dev`.
 - `npm test` — unit tests (Vitest, `src/**/*.spec.ts`, no database).
 - `npm run test:e2e` — e2e tests (`test/**/*.e2e-spec.ts`) against a Testcontainers Postgres 18; Docker must be running.
 - `npm run lint` (oxlint, type-aware), `npm run typecheck`, `npm run build`.
 - `scripts/demo.sh` — curl walkthrough of every endpoint and error case.
+- `cd frontend && npm run dev` — React UI on :5173; proxies `/api` to the API on :3000 (`API_URL` overrides).
+- `cd frontend && npm test` — frontend tests (Vitest, jsdom, Testing Library, MSW); `npm run lint`, `npm run typecheck`, `npm run build` and `npm run format:check` work there too.
 
 ## Code conventions
 
@@ -22,6 +24,15 @@ This repo is a take-home backend assignment (Everfit): a **Workout Logging API**
 - Layers: controller (Zod pipes) → service (rules) → repository (parameterized SQL only). Pure math and parsing live in `src/domain` and use `decimal.js`, never floats.
 - Validation failures throw `RequestValidationError` with field paths; the global filter renders every error as `{ statusCode, code, message, errors?, requestId? }`.
 - The implementation plan is `docs/superpowers/plans/2026-10-15-workout-logging-api.md`.
+
+## Frontend conventions (`frontend/`)
+
+- A separate npm package: Vite 8, React 19, Tailwind CSS 4, TanStack Query 5, React Router 7. Relative imports have no extension (bundler resolution), unlike the backend. The plan is `docs/superpowers/plans/2026-10-16-frontend-app.md`.
+- The browser only calls same-origin `/api/*` (the Vite proxy in development, nginx in Docker). API calls go through `src/api`: `client.ts` (fetch and `ApiError`), `endpoints.ts`, `queries.ts` (hooks). `src/api/types.ts` mirrors the backend presenters by hand; update it when a response shape changes.
+- Pages read the client and display unit with `useActiveSession()`. Filters and the selected exercise live in the URL.
+- Logging validation belongs to the API: the form sends what was typed and maps `errors[].field` paths back to the inputs.
+- Calendar days are local `YYYY-MM-DD` strings from `src/lib/dates.ts`, never `toISOString().slice(0, 10)`. Tests run in `Asia/Ho_Chi_Minh` with `Date` frozen at 2026-10-16 12:00.
+- Styling: a dark zinc theme with a lime accent. Reuse the primitives in `src/components/ui`, and write Tailwind classes out in full (variant maps, no string building).
 
 ## Design decisions (ADRs in `docs/adr/`)
 
