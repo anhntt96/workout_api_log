@@ -1,0 +1,73 @@
+# Production stack on the VPS, at /opt/workout/compose.yaml next to .env (docs/deployment.md).
+# The Deploy workflow copies this file on every deploy, and deploy.sh sets IMAGE_TAG in .env.
+#
+# No service publishes a port: cloudflared dials out to Cloudflare, which is the only way in. Ports published by
+# Docker would also bypass the host's ufw firewall.
+name: workout
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: workout
+      # Read only when the volume is first created; docs/deployment.md explains rotating it.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: workout
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/18/docker; mount the parent.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      # Probe over TCP: the image's init phase runs a temporary server on the unix socket only,
+      # so a socket probe can report healthy before the real server accepts TCP connections.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U workout -d workout']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    image: ghcr.io/anhntt96/workout-api:${IMAGE_TAG:?set IMAGE_TAG in .env}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://workout:${POSTGRES_PASSWORD}@db:5432/workout
+      PORT: '3000'
+      LOG_LEVEL: info
+      DB_POOL_MAX: '10'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    mem_limit: 512m
+
+  web:
+    image: ghcr.io/anhntt96/workout-web:${IMAGE_TAG:?set IMAGE_TAG in .env}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # 127.0.0.1, not localhost: nginx listens on IPv4 only, and localhost can resolve to ::1.
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    mem_limit: 128m
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.3
+    restart: unless-stopped
+    # The tunnel's public hostname, set in the Cloudflare dashboard, sends workout.albertnguyen.dev to http://web:80.
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+    depends_on:
+      web:
+        condition: service_healthy
+    mem_limit: 128m
+
+volumes:
+  db-data:
