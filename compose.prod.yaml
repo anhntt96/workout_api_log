@@ -1,0 +1,51 @@
+# EC2 + RDS: the API and the web (nginx) containers run on the instance, PostgreSQL is RDS.
+#
+# One-time setup on the instance, next to this file:
+#   curl -fsSLo global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+#   cat > .env <<'EOF'      # then: chmod 600 .env
+#   DATABASE_URL=postgres://workout_app:<password>@<rds-endpoint>:5432/workout?sslmode=verify-full
+#   LOG_LEVEL=info
+#   DB_POOL_MAX=10
+#   EOF
+# Run: docker compose -f compose.prod.yaml up -d --build
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: '3000'
+      # RDS enforces TLS and Node does not trust the AWS CA by default.
+      NODE_EXTRA_CA_CERTS: /certs/global-bundle.pem
+    volumes:
+      - ./global-bundle.pem:/certs/global-bundle.pem:ro
+    # No published port: only nginx in `web` reaches the API, over the compose network.
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
