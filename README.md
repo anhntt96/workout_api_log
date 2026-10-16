@@ -73,6 +73,15 @@ The stack is Vite 8, React 19, TypeScript, Tailwind CSS 4, TanStack Query and Re
 cd frontend
 npm install
 npm run dev        # http://localhost:5173; proxies /api to http://localhost:3000 (set API_URL to change it)
+```
+
+| Command (in `frontend/`) | What it does |
+| --- | --- |
+| `npm test` | Unit and component tests (Vitest, Testing Library, MSW); no API needed |
+| `npm run lint` / `npm run typecheck` / `npm run build` | oxlint, `tsc --noEmit`, production build |
+| `npm run format:check` | Prettier, with Tailwind class sorting |
+
+## Architecture
 
 ```mermaid
 flowchart LR
