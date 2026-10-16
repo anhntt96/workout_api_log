@@ -31,7 +31,7 @@ This repo is a take-home backend assignment (Everfit): a **Workout Logging API**
 - The browser only calls same-origin `/api/*` (the Vite proxy in development, nginx in Docker). API calls go through `src/api`: `client.ts` (fetch and `ApiError`), `endpoints.ts`, `queries.ts` (hooks). `src/api/types.ts` mirrors the backend presenters by hand; update it when a response shape changes.
 - Pages read the client and display unit with `useActiveSession()`. Filters and the selected exercise live in the URL.
 - Logging validation belongs to the API: the form sends what was typed and maps `errors[].field` paths back to the inputs.
-- Calendar days are local `YYYY-MM-DD` strings from `src/lib/dates.ts`, never `toISOString().slice(0, 10)`. Tests run in `Asia/Ho_Chi_Minh` with `Date` frozen at 2026-10-16 12:00.
+- Calendar days are local `YYYY-MM-DD` strings from `src/lib/dates.ts`, never `toISOString().slice(0, 10)`. Tests run in `Asia/Ho_Chi_Minh` with `Date` frozen at 2026-10-16 00:30 local (the UTC day is still the 15th).
 - Styling: a dark zinc theme with a lime accent. Reuse the primitives in `src/components/ui`, and write Tailwind classes out in full (variant maps, no string building).
 
 ## Design decisions (ADRs in `docs/adr/`)

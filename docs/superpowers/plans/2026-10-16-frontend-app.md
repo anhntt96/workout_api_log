@@ -52,7 +52,7 @@
 
 - Pure logic (dates, formatting, UUIDs, filters, grouping, the form reducer, sample data) has unit tests.
 - Screens are tested through the real routes with Testing Library, `user-event`, and MSW handlers shaped like the API. The default handlers return the catalog and an empty account, and any request no handler matches fails the test.
-- Vitest runs in `Asia/Ho_Chi_Minh` (UTC+7) with `Date` frozen at 2026-10-16 12:00 local time, so dates are deterministic and code that uses the UTC day fails.
+- Vitest runs in `Asia/Ho_Chi_Minh` (UTC+7) with `Date` frozen at 2026-10-16 00:30 local time, when the UTC day is still the 15th, so dates are deterministic and a screen that uses the UTC day fails.
 - Docker and the live API are checked by hand in the last task.
 
 ### Run and deploy
@@ -99,7 +99,7 @@
 **Interfaces:**
 - Produces, in `src/api/types.ts`: `WeightUnit` (`'kg' | 'lb'`), `WEIGHT_UNITS`, `FieldError`, `ErrorBody`, `Exercise`, `WorkoutSet`, `WorkoutEntry`, `HistoryPage`, `RecordMetric` (`'maxWeight' | 'maxVolume' | 'bestE1rm'`), `PersonalRecord`, `Records`, `PersonalRecordsResponse`, `MetricChange`, `PeriodRecords`, `ComparisonResponse`, `LogEntryInput`, `LogResult`.
 - Produces, in `src/lib/uuid.ts`: `isUuid(value: string): boolean`, `shortId(id: string): string`.
-- Produces, for tests: `server` in `src/test/server.ts` (MSW with default handlers: the catalog, and an empty account for history, records and comparison); `USER_ID`, `CATALOG`, `NO_RECORDS` and `makeEntry(overrides?: Partial<WorkoutEntry>): WorkoutEntry` in `src/test/fixtures.ts`; a global setup that freezes `Date` at 2026-10-16 12:00 local time and clears `localStorage` after each test.
+- Produces, for tests: `server` in `src/test/server.ts` (MSW with default handlers: the catalog, and an empty account for history, records and comparison); `USER_ID`, `CATALOG`, `NO_RECORDS` and `makeEntry(overrides?: Partial<WorkoutEntry>): WorkoutEntry` in `src/test/fixtures.ts`; a global setup that freezes `Date` at 2026-10-16 00:30 local time and clears `localStorage` after each test.
 
 - [ ] **Step 1: Create the branch**
 
@@ -546,8 +546,9 @@ import { server } from './server';
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
 beforeEach(() => {
-  // Every test runs on Friday 2026-10-16 at local noon. Only Date is faked; timers stay real for user-event and MSW.
-  vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 16, 12) });
+  // Every test runs on Friday 2026-10-16 at 00:30 local time, when the UTC day (in this UTC+7 zone) is still
+  // 2026-10-15, so a screen that uses the UTC day fails. Only Date is faked; timers stay real for user-event and MSW.
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 16, 0, 30) });
 });
 
 afterEach(() => {
@@ -5530,7 +5531,7 @@ with:
 - The browser only calls same-origin `/api/*` (the Vite proxy in development, nginx in Docker). API calls go through `src/api`: `client.ts` (fetch and `ApiError`), `endpoints.ts`, `queries.ts` (hooks). `src/api/types.ts` mirrors the backend presenters by hand; update it when a response shape changes.
 - Pages read the client and display unit with `useActiveSession()`. Filters and the selected exercise live in the URL.
 - Logging validation belongs to the API: the form sends what was typed and maps `errors[].field` paths back to the inputs.
-- Calendar days are local `YYYY-MM-DD` strings from `src/lib/dates.ts`, never `toISOString().slice(0, 10)`. Tests run in `Asia/Ho_Chi_Minh` with `Date` frozen at 2026-10-16 12:00.
+- Calendar days are local `YYYY-MM-DD` strings from `src/lib/dates.ts`, never `toISOString().slice(0, 10)`. Tests run in `Asia/Ho_Chi_Minh` with `Date` frozen at 2026-10-16 00:30 local (the UTC day is still the 15th).
 - Styling: a dark zinc theme with a lime accent. Reuse the primitives in `src/components/ui`, and write Tailwind classes out in full (variant maps, no string building).
 ```
 
