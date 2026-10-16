@@ -68,7 +68,9 @@ export function LogWorkoutPage() {
         description="Record one session. Weights are stored as entered and converted wherever they are shown."
       />
       {logWorkouts.isError && <ApiErrorAlert error={logWorkouts.error} className="mb-6" />}
-      {exercises.isError && <ApiErrorAlert error={exercises.error} className="mb-6" />}
+      {exercises.isError && (
+        <ApiErrorAlert error={exercises.error} onRetry={() => void exercises.refetch()} className="mb-6" />
+      )}
 
       <Card className="p-4 sm:p-5">
         <Input

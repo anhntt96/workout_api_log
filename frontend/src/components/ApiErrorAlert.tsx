@@ -1,12 +1,32 @@
+import { RotateCw } from 'lucide-react';
 import { ApiError } from '../api/client';
 import { Alert } from './ui/Alert';
+import { Button } from './ui/Button';
 
-/** Shows an API error as the API reported it: message, each field error, and the request id for the logs. */
-export function ApiErrorAlert({ error, className }: { error: unknown; className?: string }) {
+/**
+ * Shows an API error as the API reported it: message, each field error, and the request id for the logs.
+ * With `onRetry`, it also offers Try again.
+ */
+export function ApiErrorAlert({
+  error,
+  onRetry,
+  className,
+}: {
+  error: unknown;
+  onRetry?: () => void;
+  className?: string;
+}) {
+  const retry = onRetry && (
+    <Button variant="secondary" size="sm" className="mt-3" onClick={onRetry}>
+      <RotateCw aria-hidden="true" className="size-3.5" />
+      Try again
+    </Button>
+  );
   if (!(error instanceof ApiError)) {
     return (
       <Alert tone="error" title="Something went wrong" className={className}>
-        {error instanceof Error ? error.message : String(error)}
+        <p>{error instanceof Error ? error.message : String(error)}</p>
+        {retry}
       </Alert>
     );
   }
@@ -22,6 +42,7 @@ export function ApiErrorAlert({ error, className }: { error: unknown; className?
         </ul>
       )}
       {error.requestId && <p className="mt-1 font-mono text-xs opacity-70">Request ID {error.requestId}</p>}
+      {retry}
     </Alert>
   );
 }

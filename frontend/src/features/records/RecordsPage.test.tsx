@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import type { Records } from '../../api/types';
-import { NO_RECORDS, USER_ID } from '../../test/fixtures';
+import { CATALOG, NO_RECORDS, USER_ID } from '../../test/fixtures';
 import { renderApp } from '../../test/render';
 import { server } from '../../test/server';
 
@@ -10,6 +10,8 @@ const BENCH_RECORDS: Records = {
   maxVolume: { value: 800, weight: 80, reps: 10, date: '2026-09-02', entryId: 'e1' },
   bestE1rm: { value: 128.33, weight: 110, reps: 5, date: '2026-09-09', entryId: 'e2' },
 };
+
+const SERVER_ERROR = { statusCode: 500, code: 'INTERNAL_ERROR', message: 'Internal server error' };
 
 function serveRecords(records: Records) {
   const requests: URL[] = [];
@@ -121,5 +123,50 @@ describe('RecordsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('exerciseName: Unknown exercise "Curl"');
     expect(screen.queryByRole('group', { name: 'Heaviest single set' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Compare periods' })).not.toBeInTheDocument();
+  });
+
+  it('offers Try again when the records fail to load', async () => {
+    let fail = true;
+    server.use(
+      http.get('/api/users/:userId/personal-records', ({ request }) =>
+        fail
+          ? HttpResponse.json(SERVER_ERROR, { status: 500 })
+          : HttpResponse.json({
+              data: {
+                exerciseName: new URL(request.url).searchParams.get('exerciseName'),
+                unit: 'kg',
+                from: null,
+                to: null,
+                records: BENCH_RECORDS,
+              },
+            }),
+      ),
+    );
+    const { user } = renderApp('/records');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Internal server error');
+    fail = false;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByRole('group', { name: 'Heaviest single set' })).toHaveTextContent('120kg');
+  });
+
+  it('offers Try again when the exercise catalog fails, instead of loading forever', async () => {
+    let fail = true;
+    server.use(
+      http.get('/api/exercises', () =>
+        fail ? HttpResponse.json(SERVER_ERROR, { status: 500 }) : HttpResponse.json({ data: CATALOG }),
+      ),
+    );
+    serveRecords(BENCH_RECORDS);
+    const { user, container } = renderApp('/records');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Internal server error');
+    expect(container.querySelector('[class*="animate-pulse"]')).toBeNull();
+    fail = false;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByRole('group', { name: 'Heaviest single set' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Exercise')).toHaveValue('Back Squat');
   });
 });

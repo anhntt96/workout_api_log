@@ -35,7 +35,7 @@ export function ComparisonPanel({ exerciseName }: { exerciseName: string }) {
   if (comparison.isPending) {
     body = <Skeleton className="h-40 rounded-xl" />;
   } else if (comparison.isError) {
-    body = <ApiErrorAlert error={comparison.error} />;
+    body = <ApiErrorAlert error={comparison.error} onRetry={() => void comparison.refetch()} />;
   } else if (comparison.data.message) {
     body = (
       <p className="rounded-xl bg-white/5 px-4 py-6 text-center text-sm text-zinc-400">

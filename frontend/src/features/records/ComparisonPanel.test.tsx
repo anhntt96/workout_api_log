@@ -102,4 +102,27 @@ describe('ComparisonPanel', () => {
       await screen.findByText('No Deadlift entries found for this user in either date range.'),
     ).toBeInTheDocument();
   });
+
+  it('offers Try again when the comparison fails', async () => {
+    serveComparison();
+    let fail = true;
+    // Answers first while failing; afterwards it falls through to the handler above.
+    server.use(
+      http.get('/api/users/:userId/personal-records/comparison', () =>
+        fail
+          ? HttpResponse.json(
+              { statusCode: 500, code: 'INTERNAL_ERROR', message: 'Internal server error' },
+              { status: 500 },
+            )
+          : undefined,
+      ),
+    );
+    const { user } = renderApp('/records?exercise=Bench%20Press');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Internal server error');
+    fail = false;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+  });
 });

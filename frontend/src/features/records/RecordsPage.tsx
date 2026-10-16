@@ -20,6 +20,8 @@ export function RecordsPage() {
   // The exercise is kept in the URL (?exercise=Deadlift); the first catalog exercise is the default.
   const exerciseName = params.get('exercise') ?? exercises.data?.[0]?.name ?? '';
   const records = usePersonalRecords(userId, exerciseName, unit);
+  // Without the catalog there is no exercise to ask about, so show only the catalog error.
+  const catalogFailed = exercises.isError && exerciseName === '';
 
   return (
     <>
@@ -42,8 +44,12 @@ export function RecordsPage() {
           </Select>
         }
       />
-      {exercises.isError && <ApiErrorAlert error={exercises.error} className="mb-6" />}
-      {records.isError && <ApiErrorAlert error={records.error} className="mb-6" />}
+      {exercises.isError && (
+        <ApiErrorAlert error={exercises.error} onRetry={() => void exercises.refetch()} className="mb-6" />
+      )}
+      {records.isError && (
+        <ApiErrorAlert error={records.error} onRetry={() => void records.refetch()} className="mb-6" />
+      )}
       {records.data?.message && (
         <Alert tone="info" title={records.data.message} className="mb-6">
           <p>Log a workout or load sample data to see records here.</p>
@@ -56,7 +62,7 @@ export function RecordsPage() {
           </div>
         </Alert>
       )}
-      {!records.isError && (
+      {!records.isError && !catalogFailed && (
         <>
           <div className="grid gap-4 md:grid-cols-3">
             {RECORD_METRICS.map((metric) =>

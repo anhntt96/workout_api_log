@@ -88,14 +88,7 @@ export function HistoryPage() {
       </div>
     );
   } else if (history.isError) {
-    content = (
-      <div className="space-y-3">
-        <ApiErrorAlert error={history.error} />
-        <Button variant="secondary" onClick={() => void history.refetch()}>
-          Try again
-        </Button>
-      </div>
-    );
+    content = <ApiErrorAlert error={history.error} onRetry={() => void history.refetch()} />;
   } else if (entries.length === 0) {
     content = hasActiveFilters(filters) ? (
       <EmptyState
@@ -174,7 +167,9 @@ export function HistoryPage() {
         }
       />
       {flash && <Alert tone="success" title={flash} onDismiss={() => setFlash(null)} className="mb-6" />}
-      {exercises.isError && <ApiErrorAlert error={exercises.error} className="mb-6" />}
+      {exercises.isError && (
+        <ApiErrorAlert error={exercises.error} onRetry={() => void exercises.refetch()} className="mb-6" />
+      )}
       <HistoryFilterBar
         filters={filters}
         muscleGroups={muscleGroupOptions(catalog)}
