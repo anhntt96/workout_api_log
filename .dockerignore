@@ -1,0 +1,11 @@
+.git
+.claude
+node_modules
+dist
+coverage
+test
+docs
+scripts
+*.md
+*.pdf
+.env

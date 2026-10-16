@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: workout
+      POSTGRES_PASSWORD: workout
+      POSTGRES_DB: workout
+    ports:
+      - '${DB_PORT:-5433}:5432'
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/18/docker; mount the parent.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U workout -d workout']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgres://workout:workout@db:5432/workout
+      PORT: '3000'
+      LOG_LEVEL: info
+      DB_POOL_MAX: '10'
+    ports:
+      - '${API_PORT:-3000}:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  db-data:
