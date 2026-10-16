@@ -1,0 +1,84 @@
+#cloud-config
+# Host setup for the workout VPS: Ubuntu 24.04 LTS, x86_64. docs/deployment.md ("The server") fills in the two
+# public keys and pastes the result as user data when creating the server.
+#
+# Result: user `deploy` (SSH key only, passwordless sudo, docker group), no root or password logins, ufw allowing
+# only SSH, Docker Engine with rotated logs, 2 GB of swap, automatic security updates, and a daily 03:00 UTC
+# backup timer for /opt/workout/backup.sh.
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - fail2ban
+  - jq
+  - rclone
+  - ufw
+  - unattended-upgrades
+
+users:
+  - name: deploy
+    shell: /bin/bash
+    lock_passwd: true
+    # Membership in the docker group is root-equivalent anyway, so deploy may also use sudo.
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    ssh_authorized_keys:
+      - REPLACE_WITH_YOUR_PUBLIC_KEY
+      - REPLACE_WITH_CI_PUBLIC_KEY
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-hardening.conf
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+  - path: /etc/docker/daemon.json
+    content: |
+      {"log-driver": "local", "log-opts": {"max-size": "20m", "max-file": "5"}}
+  - path: /etc/systemd/system/workout-backup.service
+    content: |
+      [Unit]
+      Description=Back up the workout database to Cloudflare R2
+      Requires=docker.service
+      After=docker.service
+
+      [Service]
+      Type=oneshot
+      User=deploy
+      ExecStart=/opt/workout/backup.sh
+  - path: /etc/systemd/system/workout-backup.timer
+    content: |
+      [Unit]
+      Description=Daily backup of the workout database
+
+      [Timer]
+      OnCalendar=*-*-* 03:00:00 UTC
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+
+runcmd:
+  # Docker Engine and the Compose plugin from Docker's apt repository.
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list'
+  - apt-get update
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - usermod -aG docker deploy
+  # 2 GB of swap, so a memory spike slows the box down instead of killing Postgres.
+  - fallocate -l 2G /swapfile
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  # Only SSH comes in. The app is reached through the outbound Cloudflare Tunnel.
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow OpenSSH
+  - ufw --force enable
+  - install -d -o deploy -g deploy -m 0750 /opt/workout
+  - systemctl restart ssh
+  - systemctl daemon-reload
+  - systemctl enable --now workout-backup.timer
