@@ -54,4 +54,42 @@ describe('LoadSampleDataButton', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Internal server error');
   });
+
+  it('says what it loaded, so an exercise outside the sample does not look broken', async () => {
+    server.use(
+      http.post('/api/users/:userId/workout-entries', async ({ request }) => {
+        const { entries } = (await request.json()) as { entries: LogEntryInput[] };
+        const data = entries.map((entry) =>
+          makeEntry({ date: entry.date, exerciseName: entry.exerciseName }),
+        );
+        return HttpResponse.json({ data }, { status: 201 });
+      }),
+    );
+    const { user } = renderApp('/records?exercise=Bicep%20Curl');
+
+    await user.click(await screen.findByRole('button', { name: 'Load sample data' }));
+
+    expect(
+      await screen.findByText(
+        'Loaded 48 sample entries for Back Squat, Bench Press, Barbell Row, Deadlift, Overhead Press, and Pull-Up.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('says when this client already had the sample data', async () => {
+    server.use(
+      http.post('/api/users/:userId/workout-entries', () =>
+        HttpResponse.json({ data: [] }, { status: 201, headers: { 'Idempotent-Replayed': 'true' } }),
+      ),
+    );
+    const { user } = renderApp('/records?exercise=Bicep%20Curl');
+
+    await user.click(await screen.findByRole('button', { name: 'Load sample data' }));
+
+    expect(
+      await screen.findByText(
+        'Sample data was already loaded for this client: Back Squat, Bench Press, Barbell Row, Deadlift, Overhead Press, and Pull-Up.',
+      ),
+    ).toBeInTheDocument();
+  });
 });

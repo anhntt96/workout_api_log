@@ -1,4 +1,4 @@
-import { buildSampleWorkouts, sampleDataKey } from './sample-workouts';
+import { SAMPLE_EXERCISES, buildSampleWorkouts, sampleDataKey } from './sample-workouts';
 
 // The backend's seeded catalog (migrations/0002_seed_exercise_catalog.sql).
 const CATALOG_NAMES = [
@@ -38,6 +38,10 @@ describe('buildSampleWorkouts', () => {
   it('covers this month and last month, so the default comparison has data', () => {
     expect(entries.some((entry) => entry.date.startsWith('2026-10'))).toBe(true);
     expect(entries.some((entry) => entry.date.startsWith('2026-09'))).toBe(true);
+  });
+
+  it('logs exactly the exercises it names', () => {
+    expect(new Set(entries.map((entry) => entry.exerciseName))).toEqual(new Set(SAMPLE_EXERCISES));
   });
 
   it('uses catalog exercises only', () => {

@@ -3,7 +3,9 @@ import { useLogWorkouts } from '../../api/queries';
 import { Button, type ButtonSize, type ButtonVariant } from '../../components/ui/Button';
 import { todayIsoDay } from '../../lib/dates';
 import { useActiveSession } from '../../session/session';
-import { buildSampleWorkouts, sampleDataKey } from './sample-workouts';
+import { SAMPLE_EXERCISES, buildSampleWorkouts, sampleDataKey } from './sample-workouts';
+
+const SAMPLE_LIST = new Intl.ListFormat('en-US', { type: 'conjunction' }).format(SAMPLE_EXERCISES);
 
 /** Logs eight weeks of sample workouts for the current client in one request. */
 export function LoadSampleDataButton({
@@ -35,6 +37,14 @@ export function LoadSampleDataButton({
         )}
         Load sample data
       </Button>
+      {/* Says what happened: the sample covers six exercises, and a second load replays the first. */}
+      {logWorkouts.isSuccess && (
+        <p role="status" className="max-w-xs text-center text-xs text-zinc-400">
+          {logWorkouts.data.replayed
+            ? `Sample data was already loaded for this client: ${SAMPLE_LIST}.`
+            : `Loaded ${logWorkouts.data.entries.length} sample entries for ${SAMPLE_LIST}.`}
+        </p>
+      )}
       {logWorkouts.isError && (
         <p role="alert" className="text-xs text-rose-300">
           {logWorkouts.error.message}

@@ -75,6 +75,9 @@ const SESSION_B: Lift[] = [
   },
 ];
 
+/** The exercises the sample logs; the other catalog exercises stay empty. */
+export const SAMPLE_EXERCISES = [...SESSION_A, ...SESSION_B].map((lift) => lift.exerciseName);
+
 /** 48 entries of steady progress ending today (the API takes up to 50 per request), in kg and lb. */
 export function buildSampleWorkouts(today: string): LogEntryInput[] {
   return SESSION_OFFSETS.flatMap((offset, index) => {
