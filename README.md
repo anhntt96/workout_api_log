@@ -63,7 +63,7 @@ flowchart LR
   client[Coach app / API client] -->|HTTP + JSON| http
   subgraph app[NestJS API]
     direction TB
-    http[pino-http: JSON logs + X-Request-Id<br/>JSON body parser, 1 MB limit] --> controllers
+    http[JSON body parser, 1 MB limit<br/>pino-http: JSON logs + X-Request-Id] --> controllers
     controllers[Controllers<br/>Zod validation pipes] --> services[Services<br/>business rules]
     services --> repositories[Repositories<br/>parameterized SQL]
     domain[Domain<br/>unit registry · Epley/volume · dates] -.-> services
@@ -98,6 +98,23 @@ All bodies are JSON. `userId` is any UUID. There is no users table and no authen
 | `GET` | `/users/{userId}/workout-entries` | History: filters, unit conversion, cursor pagination |
 | `GET` | `/users/{userId}/personal-records` | PRs for one exercise, all-time or within a date range |
 | `GET` | `/users/{userId}/personal-records/comparison` | PRs in one period against a baseline period |
+
+### Health: `GET /health`
+
+`200` `{ "status": "ok" }` when the database answers; otherwise `503` `{ "statusCode": 503, "code": "SERVICE_UNAVAILABLE", "message": "Database is unreachable", "requestId": "…" }`.
+
+### Exercise catalog: `GET /exercises`
+
+```json
+{
+  "data": [
+    { "name": "Back Squat", "muscleGroups": ["glutes", "hamstrings", "quadriceps"] },
+    { "name": "Barbell Row", "muscleGroups": ["back", "biceps"] }
+  ]
+}
+```
+
+All 16 exercises, alphabetical; `exerciseName` values elsewhere must be one of these names (any case).
 
 ### Log entries: `POST /users/{userId}/workout-entries`
 
@@ -155,7 +172,8 @@ Rules:
 - `date` is `YYYY-MM-DD` or an ISO 8601 datetime with an offset. The day is read in the offset you send, so send your local offset rather than `toISOString()` output. A datetime without an offset is rejected, and so is any day later than tomorrow in UTC ([ADR 0002](docs/adr/0002-workout-date-and-timezone.md)).
 - Unknown fields are rejected. The whole request is validated first and every problem is reported at once. Nothing is stored unless every entry is valid.
 - Weights are stored with 3 decimals. Each set keeps its logged `weight` and `unit` and also stores `weight_kg`.
-- **Idempotency** ([ADR 0003](docs/adr/0003-concurrent-writes-and-idempotency.md)): with an `Idempotency-Key` header (1–200 visible ASCII characters), a retry stores nothing new and returns the original entries with `Idempotent-Replayed: true`. Parallel retries are safe. Keys are scoped to the user. Use a new key for every new request, because a key reused with a different body is not detected: entries at positions already stored come back unchanged, and any extra entries in a longer body are stored. Without a key, every request is stored, including identical ones.
+- **Idempotency** ([ADR 0003](docs/adr/0003-concurrent-writes-and-idempotency.md)): with an `Idempotency-Key` header (1–200 visible ASCII characters), a retry stores nothing new and returns `201` with the original entries and `Idempotent-Replayed: true`. Parallel retries are safe. Keys are scoped to the user. Use a new key for every new request, because a key reused with a different body is not detected: entries at positions already stored come back unchanged, and any extra entries in a longer body are stored. Without a key, every request is stored, including identical ones.
+- **Concurrent writes** are never serialized: the same user logging the same exercise at the same time gets separate entries ([ADR 0003](docs/adr/0003-concurrent-writes-and-idempotency.md)). Use an `Idempotency-Key` to make retries safe.
 
 ### History: `GET /users/{userId}/workout-entries`
 
@@ -378,7 +396,7 @@ time curl -s "localhost:3000/users/7d3f1a2b-4c5d-4e6f-8a9b-0c1d2e3f4a5b/personal
 - **Stateless replicas behind a load balancer**, with **PgBouncer** in transaction mode. Ten replicas × `DB_POOL_MAX` would exceed Postgres' connection limit otherwise.
 - **Read replicas** for history and PR reads. Writes stay on the primary, and a read-your-writes path is needed right after logging.
 - **Run migrations as a deploy step**, not at startup.
-- **Hash-partition** `workout_entries` and `workout_sets` by `user_id` once they reach hundreds of millions of rows. Postgres needs the partition key in every primary and unique key, so `user_id` is added to `workout_sets`, the keys become `(user_id, id)` for entries and `(user_id, entry_id, set_index)` for sets, and the sets foreign key becomes `(user_id, entry_id)` referencing `(user_id, id)`. History, idempotency and record lookups already filter by `user_id`, so they prune immediately; the read-back by entry id after a write and the set lookups (which join on `entry_id`) need a `user_id` predicate added to prune too.
+- **Hash-partition** `workout_entries` and `workout_sets` by `user_id` once they reach hundreds of millions of rows. Postgres needs the partition key in every primary and unique key, so `user_id` is added to `workout_sets`, the keys become `(user_id, id)` for entries and `(user_id, entry_id, set_index)` for sets, and the sets foreign key becomes `(user_id, entry_id)` referencing `(user_id, id)`. History, idempotency and PR entry lookups already filter `workout_entries` by `user_id`, so that part prunes immediately; their set joins (on `entry_id`) and the read-back by entry id after a keyless write need a `user_id` predicate to prune.
 - **Cache `GET /exercises`** with `Cache-Control` and an ETag (it only changes with a deploy), and keep the catalog in memory.
 - **Authentication and authorization**: take the coach identity from a token and check coach → client access, instead of trusting `userId` in the path. Add per-coach rate limiting.
 - **An idempotency key table** with a payload hash (409 on mismatch) and an expiry job (ADR 0003 "Revisit If").

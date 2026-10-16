@@ -24,7 +24,10 @@ export function isWeightUnit(value: string): value is WeightUnit {
   return Object.hasOwn(KG_PER_UNIT, value);
 }
 
-/** Converts a weight between units with exact decimal arithmetic (no rounding). */
+/**
+ * Converts a weight between units with decimal arithmetic: exact for lb to kg, while the other
+ * directions divide at Decimal's 20 significant digits, far below storage or display precision.
+ */
 export function convertWeight(value: Decimal.Value, from: WeightUnit, to: WeightUnit): Decimal {
   const weight = new Decimal(value);
   if (from === to) return weight;

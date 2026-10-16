@@ -25,7 +25,9 @@ const METRIC_SQL: Record<PrMetric, { column: string; setOrder: string }> = {
 /**
  * One round trip, three index lookups. For each metric it finds the user's best entry for the
  * exercise (the earliest on ties, so the date is when the record was first reached), then the
- * set in that entry that produced it. The best_* indexes from ADR 0001 serve every lookup.
+ * set in that entry that produced it. All-time lookups read the first row of the matching best_*
+ * index (ADR 0001). Ranged lookups let the planner choose between that index and
+ * `workout_entries_exercise_date_idx`, and the 50k test bounds the rows either plan reads.
  */
 export function buildPersonalRecordsQuery(query: RecordQuery): { text: string; values: unknown[] } {
   const values: unknown[] = [query.userId, query.exerciseId];

@@ -49,8 +49,8 @@ function toErrorBody(exception: unknown): Omit<ErrorResponseBody, 'requestId'> {
     return httpError(exception.getStatus(), exception.message);
   }
   if (isClientHttpError(exception)) {
-    // Raised by Express middleware and the router, e.g. 413 for an oversized body or 400 for a malformed
-    // percent-encoded URL. The message is shown only when the error marks it safe to expose.
+    // Raised by Express middleware that Nest does not map itself, such as body-parser's 413 (oversized
+    // body) or 415 (unsupported charset). The message is shown only when the error marks it safe to expose.
     const message = exception.expose === true ? exception.message : (STATUS_CODES[exception.status] ?? 'Bad Request');
     return httpError(exception.status, message);
   }
