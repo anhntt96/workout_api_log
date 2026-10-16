@@ -6,6 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repo is a take-home backend assignment (Everfit): a **Workout Logging API** where coaches log client workouts and query history and personal records (PRs). The brief is `Everfit_Test for Backend Engineer.md` (a Markdown conversion of `Everfit_Test for Backend Engineer.pdf`; both gitignored, local only). Read the `.md` version.
 
+## Commands
+
+- `docker compose up --build --wait` — API on :3000 and Postgres 18 on :5433; migrations run on startup.
+- `npm run start:dev` — watch mode; needs `DATABASE_URL`, e.g. `docker compose up -d db` then `DATABASE_URL=postgres://workout:workout@localhost:5433/workout npm run start:dev`.
+- `npm test` — unit tests (Vitest, `src/**/*.spec.ts`, no database).
+- `npm run test:e2e` — e2e tests (`test/**/*.e2e-spec.ts`) against a Testcontainers Postgres 18; Docker must be running.
+- `npm run lint` (oxlint, type-aware), `npm run typecheck`, `npm run build`.
+- `scripts/demo.sh` — curl walkthrough of every endpoint and error case.
+
+## Code conventions
+
+- ESM (`"type": "module"`): relative imports end in `.js`; import Decimal as `import { Decimal } from 'decimal.js'`.
+- Interfaces and type aliases used in decorated signatures (injected constructor params, controller params) must be `import type` or inline `type` (isolatedModules + emitDecoratorMetadata).
+- Layers: controller (Zod pipes) → service (rules) → repository (parameterized SQL only). Pure math and parsing live in `src/domain` and use `decimal.js`, never floats.
+- Validation failures throw `RequestValidationError` with field paths; the global filter renders every error as `{ statusCode, code, message, errors?, requestId? }`.
+- The implementation plan is `docs/superpowers/plans/2026-10-15-workout-logging-api.md`.
+
 ## Design decisions (ADRs in `docs/adr/`)
 
 Read the ADR Summary sections before touching the data model or API. The ADRs build on each other:
