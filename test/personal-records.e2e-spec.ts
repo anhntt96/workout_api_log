@@ -56,6 +56,13 @@ describe('GET /users/:userId/personal-records', () => {
     expect(res.body.data.records.maxWeight.date).toBe('2026-09-01');
   });
 
+  it('reports the first set when two sets tie exactly on e1RM', async () => {
+    // 70 × (1 + 20/30) and 100 × (1 + 5/30) are both exactly 116.67 kg.
+    await log([entry('2026-09-01', 'Bench Press', [set(20, 70), set(5, 100)])]);
+    const res = await getRecords({ exerciseName: 'Bench Press' });
+    expect(res.body.data.records.bestE1rm).toMatchObject({ value: 116.67, reps: 20, weight: 70 });
+  });
+
   it('compares weights across units by their kilogram value', async () => {
     await log([entry('2026-09-01', 'Deadlift', [set(1, 200, 'lb')])]); // 90.72 kg
     await log([entry('2026-09-02', 'Deadlift', [set(1, 100, 'kg')])]); // heavier, although 100 < 200
