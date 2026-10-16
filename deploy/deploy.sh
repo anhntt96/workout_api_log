@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Deploys one release on the server: the API and web images tagged with a commit SHA. If the release doesn't
-# become healthy, it puts the previous release back and exits 1.
+# Deploys one release on the server: the API and web images tagged with a commit SHA, and the release's Compose
+# file when CI uploaded one as compose.yaml.new. If the release doesn't become healthy, it puts the previous tag and
+# Compose file back and exits 1.
 #
 # Usage: deploy.sh <image tag>
 #   The Deploy workflow runs it over ssh. Run it by hand with an earlier SHA to roll back.
@@ -20,6 +21,16 @@ cd "${DEPLOY_DIR:-/opt/workout}"
 previous_tag=$(sed -n 's/^IMAGE_TAG=//p' .env)
 wait_timeout=${WAIT_TIMEOUT:-180}
 
+# Keep the running Compose file, so a rollback runs the previous images under the configuration they shipped with.
+swapped=''
+if [[ -f compose.yaml.new ]]; then
+  if [[ -f compose.yaml ]]; then
+    cp -p compose.yaml compose.yaml.previous
+    swapped=yes
+  fi
+  mv compose.yaml.new compose.yaml
+fi
+
 set_tag() {
   # -i.bak works with both GNU and BSD sed, and both keep the file's 600 mode.
   sed -i.bak "s/^IMAGE_TAG=.*/IMAGE_TAG=$1/" .env
@@ -38,6 +49,7 @@ if start; then
   # Removes this app's images that no container uses and that are over a week old; newer ones stay for rollbacks.
   docker image prune --all --force --filter until=168h \
     --filter label=org.opencontainers.image.source=https://github.com/anhntt96/workout_api_log > /dev/null
+  rm -f compose.yaml.previous
   echo "Deployed $new_tag"
   exit 0
 fi
@@ -45,6 +57,9 @@ fi
 echo "Deploying $new_tag failed" >&2
 docker compose logs --tail 50 api >&2 || true
 set_tag "$previous_tag"
+if [[ -n $swapped ]]; then
+  mv compose.yaml.previous compose.yaml
+fi
 if [[ -n $previous_tag ]]; then
   docker compose up --detach --wait --wait-timeout "$wait_timeout" --remove-orphans
   echo "Rolled back to $previous_tag" >&2

@@ -86,4 +86,15 @@ if "$WORK/deploy.sh" rehearsal-broken; then fail 'deploy.sh reported success for
 expect_tag rehearsal-good 'after the rollback'
 "$ROOT/scripts/smoke-test.sh" http://127.0.0.1:8081
 
+echo '--- A broken Compose file rolls back to the previous one'
+cp "$WORK/compose.yaml" "$WORK/compose.good.yaml"
+# The same images under a Compose file whose API health check always fails, uploaded the way CI uploads it.
+sed 's#wget -qO- http://localhost:3000/health || exit 1#exit 1#' "$WORK/compose.yaml" > "$WORK/compose.yaml.new"
+if cmp -s "$WORK/compose.yaml" "$WORK/compose.yaml.new"; then fail 'the broken Compose file is unchanged'; fi
+if "$WORK/deploy.sh" rehearsal-good; then fail 'deploy.sh reported success for a broken Compose file'; fi
+cmp -s "$WORK/compose.good.yaml" "$WORK/compose.yaml" || fail 'compose.yaml was not put back after the failed release'
+[[ ! -e $WORK/compose.yaml.new ]] || fail 'compose.yaml.new was left behind'
+expect_tag rehearsal-good 'after the Compose rollback'
+"$ROOT/scripts/smoke-test.sh" http://127.0.0.1:8081
+
 echo 'deploy.sh rehearsal passed'
